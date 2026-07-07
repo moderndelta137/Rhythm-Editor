@@ -1,0 +1,8 @@
+name = "rhythm-editor"
+compatibility_date = "2026-07-01"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rhythm-editor"
+database_id = "replace-with-your-d1-database-id"
