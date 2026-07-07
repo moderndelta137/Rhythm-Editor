@@ -337,12 +337,71 @@
     }
 
     .inspector-section h2 {
-      margin: 0 0 8px;
+      margin: 0;
       font-size: 12px;
       letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--text);
       opacity: 0.92;
+    }
+
+    .section-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+      cursor: pointer;
+    }
+
+    .section-toggle:hover,
+    .section-toggle:active {
+      background: transparent;
+      border-color: transparent;
+      transform: none;
+    }
+
+    .section-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      border-radius: 6px;
+    }
+
+    .section-title {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .section-caret {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #3b4358;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .inspector-section-body {
+      margin-top: 8px;
+    }
+
+    .inspector-section.collapsed .inspector-section-body {
+      display: none;
     }
 
     .control-row {
@@ -1186,8 +1245,11 @@
             <input id="bpm" type="number" min="20" max="400" step="1" value="120" />
           </div>
           <div class="button-grid">
-            <button id="detectTiming" class="primary full">Detect BPM / Offset from Local Media</button>
+            <button id="tapTempo" class="primary">Tap Beat</button>
+            <button id="applyTapTempo">Apply Tap BPM</button>
+            <button id="resetTapTempo" class="full">Reset Tap Tempo</button>
           </div>
+          <div id="tapTempoStatus" class="hint" style="margin:6px 0 10px;">Tap along while media plays. First tap becomes the offset reference.</div>
           <div class="control-row">
             <span class="control-label">Beats / phrase</span>
             <input id="beatsPerPhrase" type="number" min="1" max="16" step="1" value="4" />
@@ -1379,6 +1441,22 @@
       good: 500
     };
 
+    const DEFAULT_BRUSHES = [
+      { name: "Single Hit", text: "0:medium" },
+      { name: "Four on Floor", text: "0:strong, 1:medium, 2:strong, 3:medium" },
+      { name: "Backbeat", text: "1:strong, 3:strong" },
+      { name: "Build Up", text: "0:weak, 1:medium, 2:strong, 3:verystrong" },
+      { name: "Syncopated", text: "0:medium, 0.5:weak, 2:strong, 3.5:medium" }
+    ];
+
+    function createDefaultNotes() {
+      return [];
+    }
+
+    function createDefaultBrushes() {
+      return DEFAULT_BRUSHES.map(brush => ({ ...brush }));
+    }
+
     const state = {
       bpm: 120,
       beatsPerPhrase: 4,
@@ -1399,13 +1477,13 @@
       localMediaName: "",
       localMediaSize: 0,
       localMediaDuration: 0,
-      localMediaFile: null,
       currentVideoId: null,
       currentVideoUrl: "",
       publishedChartId: "",
       lastShareUrl: "",
       browseSort: "newest",
       browseCharts: [],
+      tapTimes: [],
       toolMode: "seek",
       autoLength: true,
       selectedPhrases: new Set(),
@@ -1420,16 +1498,7 @@
       videoVolume: 80,
       beatVolume: 0.45,
       nodeVolume: 1.0,
-      notes: [
-        { id: crypto.randomUUID(), beat: 0, type: 1 },
-        { id: crypto.randomUUID(), beat: 2, type: 1 },
-        { id: crypto.randomUUID(), beat: 4, type: 2 },
-        { id: crypto.randomUUID(), beat: 7, type: 1 },
-        { id: crypto.randomUUID(), beat: 8, type: 1 },
-        { id: crypto.randomUUID(), beat: 11, type: 2 },
-        { id: crypto.randomUUID(), beat: 13, type: 0 },
-        { id: crypto.randomUUID(), beat: 15, type: 3 }
-      ]
+      notes: createDefaultNotes()
     };
 
     const playState = {
@@ -1446,28 +1515,7 @@
       judgementLog: []
     };
 
-    const brushes = [
-      {
-        name: "Single Hit",
-        text: "0:medium"
-      },
-      {
-        name: "Four on Floor",
-        text: "0:strong, 1:medium, 2:strong, 3:medium"
-      },
-      {
-        name: "Backbeat",
-        text: "1:strong, 3:strong"
-      },
-      {
-        name: "Build Up",
-        text: "0:weak, 1:medium, 2:strong, 3:verystrong"
-      },
-      {
-        name: "Syncopated",
-        text: "0:medium, 0.5:weak, 2:strong, 3.5:medium"
-      }
-    ];
+    const brushes = createDefaultBrushes();
 
     const el = {
       app: document.querySelector(".app"),
@@ -1508,7 +1556,10 @@
       selectMode: document.getElementById("selectMode"),
       nodeMode: document.getElementById("nodeMode"),
       bpm: document.getElementById("bpm"),
-      detectTiming: document.getElementById("detectTiming"),
+      tapTempo: document.getElementById("tapTempo"),
+      applyTapTempo: document.getElementById("applyTapTempo"),
+      resetTapTempo: document.getElementById("resetTapTempo"),
+      tapTempoStatus: document.getElementById("tapTempoStatus"),
       beatsPerPhrase: document.getElementById("beatsPerPhrase"),
       beatUnit: document.getElementById("beatUnit"),
       totalPhrases: document.getElementById("totalPhrases"),
@@ -1582,6 +1633,166 @@
       el.localWarning.style.display = "block";
       el.videoStatus.textContent = "Local file detected. Timeline works, but YouTube may reject embeds.";
       el.videoStatus.classList.add("warning");
+    }
+
+    const INSPECTOR_PANEL_ORDER = [
+      "Playback & Sync",
+      "Timing Grid",
+      "Audio Options",
+      "Input Node Brush",
+      "Phrase Selection",
+      "Play Mode Rules",
+      "Publish Chart",
+      "Controls"
+    ];
+
+    function normalizePanelTitle(title) {
+      return title.replace(/^\d+\.\s*/, "").trim();
+    }
+
+    function organizeInspectorPanels() {
+      const container = document.querySelector(".inspector .inspector-scroll");
+      if (!container) return;
+
+      const sections = [...container.querySelectorAll(":scope > .inspector-section")];
+      const byTitle = new Map();
+
+      for (const section of sections) {
+        const heading = section.querySelector(":scope > h2");
+        if (!heading) continue;
+
+        const title = heading.dataset.panelTitle || normalizePanelTitle(heading.textContent);
+        heading.dataset.panelTitle = title;
+        byTitle.set(title, section);
+      }
+
+      const orderedSections = INSPECTOR_PANEL_ORDER
+        .map(title => byTitle.get(title))
+        .filter(Boolean);
+      const remainingSections = sections.filter(section => !orderedSections.includes(section));
+
+      [...orderedSections, ...remainingSections].forEach((section, index) => {
+        container.appendChild(section);
+
+        const heading = section.querySelector(":scope > h2");
+        const title = heading.dataset.panelTitle || normalizePanelTitle(heading.textContent);
+
+        let body = section.querySelector(":scope > .inspector-section-body");
+        if (!body) {
+          body = document.createElement("div");
+          body.className = "inspector-section-body";
+          while (heading.nextSibling) {
+            body.appendChild(heading.nextSibling);
+          }
+          section.appendChild(body);
+        }
+
+        let toggle = heading.querySelector(".section-toggle");
+        if (!toggle) {
+          toggle = document.createElement("button");
+          toggle.type = "button";
+          toggle.className = "section-toggle";
+          toggle.addEventListener("click", () => {
+            const isCollapsed = section.classList.toggle("collapsed");
+            section.dataset.collapsed = String(isCollapsed);
+            toggle.setAttribute("aria-expanded", String(!isCollapsed));
+            const caret = toggle.querySelector(".section-caret");
+            if (caret) caret.textContent = isCollapsed ? "+" : "-";
+          });
+          heading.replaceChildren(toggle);
+        }
+
+        toggle.replaceChildren();
+
+        const titleNode = document.createElement("span");
+        titleNode.className = "section-title";
+        titleNode.textContent = `${index + 1}. ${title}`;
+
+        const caret = document.createElement("span");
+        caret.className = "section-caret";
+        caret.setAttribute("aria-hidden", "true");
+
+        const isCollapsed = section.dataset.collapsed === "true";
+        section.classList.toggle("collapsed", isCollapsed);
+        toggle.setAttribute("aria-expanded", String(!isCollapsed));
+        caret.textContent = isCollapsed ? "+" : "-";
+
+        toggle.append(titleNode, caret);
+      });
+    }
+
+    function resetChartForNewMedia() {
+      pausePlayback(false);
+      playState.active = false;
+      playState.hitNotes.clear();
+      playState.missedNotes.clear();
+      playState.judgementLog = [];
+      el.feedbackLayer.innerHTML = "";
+
+      state.bpm = 120;
+      state.beatsPerPhrase = 4;
+      state.beatUnit = 4;
+      state.totalPhrases = 16;
+      state.phrasesPerRow = 4;
+      state.snapDivision = 1;
+      state.offset = 0;
+      state.localTime = 0;
+      state.localStartedAt = performance.now();
+      state.autoLength = true;
+      state.selectedPhrases.clear();
+      state.lastSelectedPhrase = null;
+      state.clipboard = null;
+      state.tapTimes = [];
+      state.publishedChartId = "";
+      state.lastShareUrl = "";
+      state.beatSoundEnabled = true;
+      state.beatSoundType = "click";
+      state.nodeSoundType = "punchy";
+      state.brushHotkeyNode = "first";
+      state.inputNodeTypes = new Set([0, 1, 2, 3]);
+      state.timingWindows = { ...DEFAULT_TIMING_WINDOWS };
+      state.videoVolume = 80;
+      state.beatVolume = 0.45;
+      state.nodeVolume = 1.0;
+      state.notes = createDefaultNotes();
+
+      brushes.splice(0, brushes.length, ...createDefaultBrushes());
+      renderBrushOptions();
+
+      el.bpm.value = "120";
+      el.beatsPerPhrase.value = "4";
+      el.beatUnit.value = "4";
+      el.totalPhrases.value = "16";
+      el.autoLength.checked = true;
+      el.phrasesPerRow.value = "4";
+      el.snapDivision.value = "1";
+      el.offset.value = "0";
+      el.chartTitle.value = "";
+      el.chartDescription.value = "";
+      el.chartVisibility.value = "public";
+      el.overwritePaste.checked = true;
+      el.overwritePaint.checked = false;
+      el.beatSoundEnabled.checked = true;
+      el.beatSoundType.value = "click";
+      el.nodeSoundType.value = "punchy";
+      el.videoVolume.value = "80";
+      el.beatVolume.value = "45";
+      el.nodeVolume.value = "100";
+      el.activeStrength.value = "1";
+      el.brushHotkeyNode.value = "first";
+      el.perfectWindowMs.value = "50";
+      el.goodWindowMs.value = "120";
+      el.missWindowMs.value = "180";
+      for (const input of el.inputNodeTypes) {
+        input.checked = true;
+      }
+
+      updateAudioSettings();
+      updateTapTempoStatus();
+      updateSelectionStatus();
+      setToolMode("seek");
+      renderTimeline();
+      updatePlayButton();
     }
 
     function loadYouTubeApi() {
@@ -1728,6 +1939,12 @@
     function loadLocalMediaFile(file) {
       if (!file) return;
 
+      const nextMediaKey = makeLocalMediaKey(file);
+      const shouldResetChart = state.mediaSource !== (file.type.startsWith("audio/") ? "local-audio" : "local-video") || state.localMediaKey !== nextMediaKey;
+      if (shouldResetChart) {
+        resetChartForNewMedia();
+      }
+
       pausePlayback(false);
       hideAllMediaSurfaces();
 
@@ -1747,8 +1964,7 @@
       state.localMediaLoaded = true;
       state.localMediaName = file.name;
       state.localMediaSize = file.size || 0;
-      state.localMediaKey = makeLocalMediaKey(file);
-      state.localMediaFile = file;
+      state.localMediaKey = nextMediaKey;
       state.videoLoaded = false;
       state.playerReady = false;
       state.currentVideoId = null;
@@ -1807,7 +2023,7 @@
       });
     }
 
-    async function loadVideo() {
+    async function loadVideo({ resetForNewMedia = true } = {}) {
       const videoId = extractYouTubeId(el.videoUrl.value);
       if (!videoId) {
         el.videoStatus.textContent = "Could not read a YouTube video ID from that URL.";
@@ -1815,11 +2031,15 @@
         return;
       }
 
+      const shouldResetChart = resetForNewMedia && state.currentVideoId !== videoId;
+      if (shouldResetChart) {
+        resetChartForNewMedia();
+      }
+
       state.currentVideoId = videoId;
       state.currentVideoUrl = el.videoUrl.value.trim();
       state.mediaSource = "youtube";
       state.localMediaLoaded = false;
-      state.localMediaFile = null;
       hideAllMediaSurfaces();
       el.videoStatus.textContent = "Loading YouTube player...";
       el.videoStatus.classList.remove("warning");
@@ -2689,142 +2909,110 @@
       setTimelineTime(0, true);
     }
 
-    async function detectBpmAndOffsetFromLocalMedia() {
-      if (!state.localMediaFile) {
-        el.videoStatus.textContent = "Load a local audio or video file before detecting BPM. YouTube audio cannot be analyzed from the iframe.";
+    function currentAbsoluteMediaTime() {
+      if (
+        state.mediaSource === "youtube" &&
+        state.videoLoaded &&
+        state.playerReady &&
+        player &&
+        typeof player.getCurrentTime === "function"
+      ) {
+        try {
+          const time = player.getCurrentTime();
+          if (Number.isFinite(time)) return time;
+        } catch {}
+      }
+
+      const local = activeLocalMediaElement();
+      if (local && Number.isFinite(local.currentTime)) return local.currentTime;
+
+      return state.offset + timelineTime();
+    }
+
+    function estimateTapTempo() {
+      if (state.tapTimes.length < 2) return null;
+
+      const intervals = [];
+      for (let i = 1; i < state.tapTimes.length; i++) {
+        const delta = state.tapTimes[i] - state.tapTimes[i - 1];
+        if (delta >= 0.2 && delta <= 2.4) intervals.push(delta);
+      }
+
+      if (!intervals.length) return null;
+
+      const sorted = [...intervals].sort((a, b) => a - b);
+      const median = sorted[Math.floor(sorted.length / 2)];
+      const trimmed = intervals.filter(interval => Math.abs(interval - median) <= median * 0.22);
+      const useful = trimmed.length ? trimmed : intervals;
+      const average = useful.reduce((sum, value) => sum + value, 0) / useful.length;
+
+      let bpm = 60 / average;
+      while (bpm < 70) bpm *= 2;
+      while (bpm > 190) bpm /= 2;
+
+      return {
+        bpm: clamp(Math.round(bpm), 20, 400),
+        offset: state.tapTimes[0],
+        taps: state.tapTimes.length
+      };
+    }
+
+    function updateTapTempoStatus() {
+      const estimate = estimateTapTempo();
+      if (!state.tapTimes.length) {
+        el.tapTempoStatus.textContent = "Tap along while media plays. First tap becomes the offset reference.";
+        return;
+      }
+
+      if (!estimate) {
+        el.tapTempoStatus.textContent = `${state.tapTimes.length} tap${state.tapTimes.length === 1 ? "" : "s"} captured. Tap at least 2 beats.`;
+        return;
+      }
+
+      el.tapTempoStatus.textContent = `${estimate.taps} taps: about ${estimate.bpm} BPM, offset ${estimate.offset.toFixed(3)}s.`;
+    }
+
+    function tapTempoBeat() {
+      const now = currentAbsoluteMediaTime();
+      const previous = state.tapTimes[state.tapTimes.length - 1];
+
+      if (Number.isFinite(previous) && now - previous > 4) {
+        state.tapTimes = [];
+      }
+
+      state.tapTimes.push(now);
+      if (state.tapTimes.length > 24) state.tapTimes.shift();
+      updateTapTempoStatus();
+      playBeatSound(state.tapTimes.length === 1);
+    }
+
+    function resetTapTempo() {
+      state.tapTimes = [];
+      updateTapTempoStatus();
+      el.videoStatus.textContent = "Tap tempo reset.";
+      el.videoStatus.classList.remove("warning");
+    }
+
+    function applyTapTempo() {
+      const estimate = estimateTapTempo();
+      if (!estimate) {
+        el.videoStatus.textContent = "Tap at least two steady beats before applying tap tempo.";
         el.videoStatus.classList.add("warning");
         return;
       }
 
-      el.videoStatus.textContent = "Analyzing local media for BPM and offset...";
+      state.bpm = estimate.bpm;
+      state.offset = estimate.offset;
+      el.bpm.value = String(estimate.bpm);
+      el.offset.value = estimate.offset.toFixed(3);
+      state.localTime = 0;
+      state.localStartedAt = performance.now();
+      updateFromInputs();
+      setTimelineTime(0, true);
+      updateTapTempoStatus();
+
+      el.videoStatus.textContent = `Applied tap reference: ${estimate.bpm} BPM, offset ${estimate.offset.toFixed(3)}s. Fine tune by ear.`;
       el.videoStatus.classList.remove("warning");
-
-      try {
-        const ctx = ensureAudio();
-        if (!ctx || typeof ctx.decodeAudioData !== "function") {
-          throw new Error("This browser cannot decode audio for analysis.");
-        }
-
-        const arrayBuffer = await state.localMediaFile.arrayBuffer();
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-        const result = estimateTimingFromAudioBuffer(audioBuffer);
-
-        if (!result) {
-          throw new Error("Could not find enough beat-like onsets. Try a clearer audio file or set BPM manually.");
-        }
-
-        state.bpm = result.bpm;
-        state.offset = result.offset;
-        el.bpm.value = String(result.bpm);
-        el.offset.value = result.offset.toFixed(3);
-        state.localTime = 0;
-        state.localStartedAt = performance.now();
-        updateFromInputs();
-        setTimelineTime(0, true);
-
-        el.videoStatus.textContent = `Detected reference: ${result.bpm} BPM, offset ${result.offset.toFixed(3)}s (${result.onsetCount} onsets). Fine tune by ear.`;
-        el.videoStatus.classList.remove("warning");
-      } catch (error) {
-        el.videoStatus.textContent = `Detection failed: ${error.message || "could not analyze this media"}`;
-        el.videoStatus.classList.add("warning");
-      }
-    }
-
-    function estimateTimingFromAudioBuffer(audioBuffer) {
-      const sampleRate = audioBuffer.sampleRate;
-      const maxSeconds = Math.min(audioBuffer.duration, 150);
-      const sampleCount = Math.floor(maxSeconds * sampleRate);
-      const frameSize = 2048;
-      const hopSize = 1024;
-      const envelope = [];
-      const channelCount = Math.min(audioBuffer.numberOfChannels, 2);
-
-      for (let start = 0; start + frameSize < sampleCount; start += hopSize) {
-        let sum = 0;
-        for (let channel = 0; channel < channelCount; channel++) {
-          const data = audioBuffer.getChannelData(channel);
-          for (let i = 0; i < frameSize; i++) {
-            const value = data[start + i];
-            sum += value * value;
-          }
-        }
-        envelope.push(Math.sqrt(sum / (frameSize * channelCount)));
-      }
-
-      if (envelope.length < 16) return null;
-
-      const flux = [];
-      for (let i = 1; i < envelope.length; i++) {
-        flux.push(Math.max(0, envelope[i] - envelope[i - 1]));
-      }
-
-      const sorted = [...flux].sort((a, b) => a - b);
-      const median = sorted[Math.floor(sorted.length * 0.5)] || 0;
-      const high = sorted[Math.floor(sorted.length * 0.88)] || median;
-      const threshold = median + (high - median) * 0.42;
-      const minGapFrames = Math.max(1, Math.round((0.18 * sampleRate) / hopSize));
-      const peaks = [];
-
-      for (let i = 1; i < flux.length - 1; i++) {
-        if (flux[i] < threshold || flux[i] < flux[i - 1] || flux[i] < flux[i + 1]) continue;
-
-        const time = (i * hopSize) / sampleRate;
-        const strength = flux[i];
-        const previous = peaks[peaks.length - 1];
-
-        if (previous && i - previous.frame < minGapFrames) {
-          if (strength > previous.strength) {
-            previous.frame = i;
-            previous.time = time;
-            previous.strength = strength;
-          }
-        } else {
-          peaks.push({ frame: i, time, strength });
-        }
-      }
-
-      if (peaks.length < 6) return null;
-
-      const candidates = new Map();
-      const usefulPeaks = peaks.slice(0, 90);
-
-      for (let i = 0; i < usefulPeaks.length; i++) {
-        for (let j = i + 1; j < usefulPeaks.length; j++) {
-          const interval = usefulPeaks[j].time - usefulPeaks[i].time;
-          if (interval < 0.28) continue;
-          if (interval > 1.8) break;
-
-          let bpm = 60 / interval;
-          while (bpm < 70) bpm *= 2;
-          while (bpm > 190) bpm /= 2;
-
-          const rounded = Math.round(bpm);
-          const weight = (usefulPeaks[i].strength + usefulPeaks[j].strength) / Math.max(0.001, 1 + (j - i) * 0.12);
-          candidates.set(rounded, (candidates.get(rounded) || 0) + weight);
-        }
-      }
-
-      if (!candidates.size) return null;
-
-      let bestBpm = 120;
-      let bestScore = -Infinity;
-      for (const [bpm, score] of candidates.entries()) {
-        const neighborScore = score + (candidates.get(bpm - 1) || 0) * 0.55 + (candidates.get(bpm + 1) || 0) * 0.55;
-        if (neighborScore > bestScore) {
-          bestScore = neighborScore;
-          bestBpm = bpm;
-        }
-      }
-
-      const strongPeaks = [...peaks].sort((a, b) => b.strength - a.strength).slice(0, Math.max(4, Math.ceil(peaks.length * 0.25)));
-      const earliestStrong = strongPeaks.reduce((earliest, peak) => peak.time < earliest.time ? peak : earliest, strongPeaks[0]);
-      const offset = clamp(earliestStrong.time, 0, Math.max(0, audioBuffer.duration - 0.1));
-
-      return {
-        bpm: clamp(Math.round(bestBpm), 20, 400),
-        offset,
-        onsetCount: peaks.length
-      };
     }
 
     function setAppView(view) {
@@ -3301,7 +3489,7 @@
         const videoId = data.media?.youtubeVideoId || payload.media?.youtubeVideoId || payload.videoId;
         if (videoId) {
           el.videoUrl.value = `https://www.youtube.com/watch?v=${videoId}`;
-          await loadVideo();
+          await loadVideo({ resetForNewMedia: false });
           await waitForMediaReady();
           setTimelineTime(0, true);
         } else {
@@ -4064,7 +4252,7 @@
 
         if (data.mediaSource === "youtube" || videoId) {
           if (!state.videoLoaded || state.currentVideoId !== videoId) {
-            await loadVideo();
+            await loadVideo({ resetForNewMedia: false });
           } else if (player && typeof player.seekTo === "function") {
             player.seekTo(state.offset, true);
           }
@@ -4330,7 +4518,7 @@
       requestAnimationFrame(animationLoop);
     }
 
-    el.loadVideo.addEventListener("click", loadVideo);
+    el.loadVideo.addEventListener("click", () => loadVideo());
     el.loadLocalMedia.addEventListener("click", () => el.localMediaInput.click());
     el.localMediaInput.addEventListener("change", () => {
       const file = el.localMediaInput.files && el.localMediaInput.files[0];
@@ -4369,7 +4557,9 @@
 
     el.setOffsetCurrent.addEventListener("click", setOffsetToCurrentVideoTime);
     el.jumpOffset.addEventListener("click", jumpToOffset);
-    el.detectTiming.addEventListener("click", detectBpmAndOffsetFromLocalMedia);
+    el.tapTempo.addEventListener("click", tapTempoBeat);
+    el.applyTapTempo.addEventListener("click", applyTapTempo);
+    el.resetTapTempo.addEventListener("click", resetTapTempo);
     el.saveProject.addEventListener("click", saveProjectForCurrentUrl);
     el.loadProject.addEventListener("click", loadProjectForCurrentUrl);
     el.exportProjectJson.addEventListener("click", exportCurrentProjectJson);
@@ -4574,6 +4764,12 @@
           setToolMode("node");
           return;
         }
+
+        if (lowerKey === "t") {
+          event.preventDefault();
+          tapTempoBeat();
+          return;
+        }
       }
 
       if (!typing && ["1", "2", "3", "4"].includes(event.key)) {
@@ -4606,6 +4802,7 @@
       }
     });
 
+    organizeInspectorPanels();
     renderBrushOptions();
     updateAudioSettings();
     updateSelectionStatus();

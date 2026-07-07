@@ -5,4 +5,4 @@ pages_build_output_dir = "."
 [[d1_databases]]
 binding = "DB"
 database_name = "rhythm-editor"
-database_id = "replace-with-your-d1-database-id"
+database_id = "a9a0a0d2-1db7-41d5-8232-1ae26d1b9e82"
