@@ -5,6 +5,10 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rhythm Note Timing Editor Prototype v15</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2305070b'/%3E%3Cpath d='M42 8v31.5c0 7-5.8 12.5-13.3 12.5-5.4 0-9.7-3.1-9.7-7.2 0-4.6 5.2-8.2 11.3-8.2 2.1 0 4 .4 5.7 1.2V14l18-4v9l-12 2.7z' fill='%2372d7ff'/%3E%3Cpath d='M42 8v31.5c0 7-5.8 12.5-13.3 12.5-5.4 0-9.7-3.1-9.7-7.2 0-4.6 5.2-8.2 11.3-8.2 2.1 0 4 .4 5.7 1.2V14l18-4v9l-12 2.7z' fill='none' stroke='%23ffffff' stroke-width='3'/%3E%3C/svg%3E" />
   <style>
     :root {
       --bg: #0f1219;
@@ -47,14 +51,14 @@
       height: 100vh;
       display: grid;
       grid-template-columns: minmax(680px, 1fr) var(--inspector-width);
-      grid-template-rows: 1fr;
+      grid-template-rows: auto auto minmax(0, 1fr);
       gap: 0;
     }
 
     .workspace {
       min-width: 0;
       min-height: 0;
-      height: 100vh;
+      height: auto;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -63,8 +67,10 @@
     }
 
     .topbar {
-      display: flex;
-      gap: 10px;
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: 12px;
       align-items: center;
       padding: 8px 10px;
       background: #1a1f2b;
@@ -73,13 +79,44 @@
       min-width: 0;
     }
 
-    .topbar input[type="url"] {
-      min-width: 180px;
-      flex: 0 1 260px;
+    .media-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      justify-self: start;
+      width: 100%;
+      flex-wrap: wrap;
     }
 
-    .topbar button {
+    .media-controls input[type="url"] {
+      min-width: 180px;
+      flex: 1 1 260px;
+    }
+
+    .topbar button,
+    .media-controls button,
+    .account-header button {
       flex: 0 0 auto;
+    }
+
+    .account-header {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .account-name {
+      min-width: 0;
+      max-width: 150px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
 
     .local-warning {
@@ -298,28 +335,8 @@
       min-width: 0;
       min-height: 0;
       display: grid;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: 1fr;
       background: #171b26;
-    }
-
-    .inspector-header {
-      padding: 10px 12px;
-      background: #1f2532;
-      border-bottom: 1px solid var(--border);
-      box-shadow: 0 3px 12px var(--shadow);
-    }
-
-    .inspector-header h1 {
-      margin: 0;
-      font-size: 15px;
-      letter-spacing: 0.02em;
-    }
-
-    .inspector-header p {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.35;
     }
 
     .inspector-scroll {
@@ -503,7 +520,8 @@
     }
 
     input[type="url"],
-    input[type="text"] {
+    input[type="text"],
+    input[type="password"] {
       width: 100%;
     }
 
@@ -590,6 +608,15 @@
 
     .status.warning {
       color: var(--warning);
+    }
+
+    .app > #videoStatus {
+      grid-column: 1 / -1;
+      flex: 0 0 auto;
+      max-width: none;
+      padding: 6px 10px;
+      border-bottom: 1px solid #242b3b;
+      background: #141925;
     }
 
     .selection-status {
@@ -752,18 +779,40 @@
     }
 
     .view-tab {
-      min-width: 66px;
+      min-width: 82px;
       padding: 7px 10px;
       border-radius: 6px;
-      background: transparent;
-      border-color: transparent;
-      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: #eef4ff;
+    }
+
+    .view-icon {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .view-tab.editor-tab {
+      background: #21304f;
+      border-color: #3f66b2;
+    }
+
+    .view-tab.play-tab {
+      background: #3d1f48;
+      border-color: #8a4caf;
+    }
+
+    .view-tab.browse-tab {
+      background: #173b34;
+      border-color: #2e8a72;
     }
 
     .view-tab.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #061018;
+      color: #ffffff;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24) inset, 0 0 18px rgba(114, 215, 255, 0.24);
+      filter: saturate(1.3);
     }
 
     .app[data-view="browse"],
@@ -923,41 +972,72 @@
       pointer-events: none;
     }
 
+    .pixel-text {
+      font-family: "Press Start 2P", "Lucida Console", "Courier New", ui-monospace, monospace;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      -webkit-font-smoothing: none;
+      font-smooth: never;
+      -webkit-text-stroke: 0;
+      paint-order: stroke fill;
+      text-shadow:
+        2px 0 0 #05070b,
+        -2px 0 0 #05070b,
+        0 2px 0 #05070b,
+        0 -2px 0 #05070b,
+        2px 2px 0 #05070b,
+        -2px 2px 0 #05070b,
+        2px -2px 0 #05070b,
+        -2px -2px 0 #05070b,
+        0 4px 0 #05070b;
+    }
+
+    .press-start-banner {
+      position: absolute;
+      left: 50%;
+      top: 58%;
+      z-index: 13;
+      display: none;
+      transform: translate(-50%, -50%);
+      color: #ffffff;
+      font-size: clamp(34px, 5.2vw, 78px);
+      white-space: nowrap;
+      pointer-events: auto;
+      cursor: pointer;
+      opacity: calc(0.9 + var(--beat-pulse, 0) * 0.1);
+      transform: translate(-50%, -50%) scale(calc(0.98 + var(--beat-pulse, 0) * 0.06));
+      filter: contrast(1.25);
+    }
+
+    .app[data-view="play"] .press-start-banner.visible {
+      display: block;
+    }
+
     .judgement-pop {
       position: absolute;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      font-weight: 1000;
-      text-transform: uppercase;
-      letter-spacing: 0;
-      -webkit-text-stroke: 3px #05070b;
-      paint-order: stroke fill;
-      text-shadow:
-        3px 0 0 #05070b,
-        -3px 0 0 #05070b,
-        0 3px 0 #05070b,
-        0 -3px 0 #05070b,
-        0 8px 22px rgba(0, 0, 0, 0.72);
       animation: judgement-pop 620ms ease-out forwards;
     }
 
     .judgement-pop.perfect {
       color: #fff7a8;
-      font-size: 72px;
+      font-size: clamp(72px, 8.4vw, 132px);
       animation: judgement-pop 620ms ease-out forwards, perfect-color-cycle 520ms linear infinite;
       filter: drop-shadow(0 0 22px rgba(114, 215, 255, 0.95));
     }
 
     .judgement-pop.good {
       color: #ffdc6e;
-      font-size: 56px;
+      font-size: clamp(58px, 7vw, 108px);
       filter: drop-shadow(0 0 16px rgba(255, 220, 110, 0.8));
     }
 
     .judgement-pop.miss {
       color: #d5d9e5;
-      font-size: 58px;
+      font-size: clamp(60px, 7.2vw, 112px);
       filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.85));
     }
 
@@ -1059,6 +1139,62 @@
       margin-bottom: 12px;
     }
 
+    .account-panel {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #111722;
+    }
+
+    .account-fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+      gap: 8px;
+    }
+
+    .account-actions,
+    .chart-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .auth-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, 0.62);
+    }
+
+    .auth-modal.open {
+      display: grid;
+    }
+
+    .auth-card {
+      width: min(360px, 94vw);
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid #4c5874;
+      border-radius: 8px;
+      background: #151b28;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    }
+
+    .auth-card h2 {
+      margin: 0;
+      font-size: 15px;
+    }
+
     .browse-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1111,6 +1247,12 @@
       margin-bottom: 10px;
     }
 
+    .like-btn.liked {
+      background: #4a2d58;
+      border-color: #c777ff;
+      color: #ffffff;
+    }
+
     .publish-fields {
       display: grid;
       gap: 8px;
@@ -1139,10 +1281,24 @@
       }
 
       .topbar {
+        grid-template-columns: 1fr;
         flex-wrap: wrap;
       }
 
-      .topbar input[type="url"] {
+      .nav-tabs {
+        justify-self: center;
+      }
+
+      .account-header {
+        justify-content: center;
+      }
+
+      .media-controls {
+        justify-self: stretch;
+        flex-wrap: wrap;
+      }
+
+      .media-controls input[type="url"] {
         flex: 1 1 220px;
       }
 
@@ -1195,26 +1351,35 @@
 </head>
 <body>
   <div class="app" data-view="editor">
-    <main class="workspace">
-      <div class="topbar">
-        <div class="nav-tabs" aria-label="App views">
-          <button id="editorView" class="view-tab active" type="button">Editor</button>
-          <button id="playView" class="view-tab" type="button">Play</button>
-          <button id="browseView" class="view-tab" type="button">Browse</button>
+    <div class="topbar">
+        <div class="media-controls">
+          <input
+            id="videoUrl"
+            type="url"
+            placeholder="Paste YouTube URL, e.g. https://www.youtube.com/watch?v=..."
+          />
+          <button id="loadVideo" class="primary">Load YouTube</button>
+          <input id="localMediaInput" type="file" accept="video/*,audio/*" hidden />
+          <button id="loadLocalMedia">Load Local Media</button>
+          <button id="testPlay" class="primary">Test Play</button>
+          <span id="timeDisplay" class="time-display">00:00.000</span>
         </div>
-        <input
-          id="videoUrl"
-          type="url"
-          placeholder="Paste YouTube URL, e.g. https://www.youtube.com/watch?v=..."
-        />
-        <button id="loadVideo" class="primary">Load YouTube</button>
-        <input id="localMediaInput" type="file" accept="video/*,audio/*" hidden />
-        <button id="loadLocalMedia">Load Local Media</button>
-        <button id="testPlay" class="primary">Test Play</button>
-        <span id="timeDisplay" class="time-display">00:00.000</span>
-        <span id="videoStatus" class="status">No external request is made until you load a video.</span>
-      </div>
+        <div class="nav-tabs" aria-label="App views">
+          <button id="editorView" class="view-tab editor-tab active" type="button"><span class="view-icon">✎</span>Editor</button>
+          <button id="playView" class="view-tab play-tab" type="button"><span class="view-icon">▶</span>Play</button>
+          <button id="browseView" class="view-tab browse-tab" type="button"><span class="view-icon">♫</span>Browse</button>
+        </div>
+        <div class="account-header">
+          <span id="accountLabel" class="account-name">Guest</span>
+          <button id="loginAccount" class="primary" type="button">Login</button>
+          <button id="createAccount" type="button">Register</button>
+          <button id="logoutAccount" type="button">Logout</button>
+          <button id="myCharts" type="button">My Charts</button>
+        </div>
+    </div>
+    <div id="videoStatus" class="status">No external request is made until you load a video.</div>
 
+    <main class="workspace">
       <div id="localWarning" class="local-warning">
         You opened this as a local file. YouTube embeds can return <strong>Error 153</strong> from <code>file://</code> because there is no normal HTTP referrer.
         Put this HTML in a folder and run <code>python -m http.server 8000</code>, then open <code>http://localhost:8000/rhythm_editor_canvas_prototype_v15.html</code>.
@@ -1241,6 +1406,7 @@
               <div class="hud-item"><span class="hud-label">Good</span><span id="playGood" class="hud-value">0</span></div>
               <div class="hud-item"><span class="hud-label">Miss</span><span id="playMiss" class="hud-value">0</span></div>
             </div>
+            <div id="pressStartBanner" class="press-start-banner pixel-text">PRESS START</div>
             <div id="feedbackLayer" class="feedback-layer"></div>
             <div class="play-actions">
               <button id="playModePause" type="button">Play / Pause</button>
@@ -1289,11 +1455,6 @@
     </main>
 
     <aside class="inspector">
-      <div class="inspector-header">
-        <h1>Rhythm Editor Inspector</h1>
-        <p>Unity-like layout: large preview/timeline on the left, controls on the right.</p>
-      </div>
-
       <div class="inspector-scroll">
         <section class="inspector-section">
           <h2>Playback & Sync</h2>
@@ -1507,6 +1668,19 @@
     </aside>
   </div>
 
+  <div id="authModal" class="auth-modal" aria-hidden="true">
+    <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <h2 id="authTitle">Login</h2>
+      <input id="accountUsername" type="text" autocomplete="username" placeholder="Username" />
+      <input id="accountPassword" type="password" autocomplete="current-password" placeholder="Password" />
+      <div id="accountStatus" class="status">Enter account details.</div>
+      <div class="account-actions">
+        <button id="authSubmit" class="primary" type="button">Login</button>
+        <button id="authCancel" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const NODE_TYPES = [
       { name: "Weak", short: "W", radius: 8, volume: 0.52, pitch: 260, duration: 0.085 },
@@ -1570,7 +1744,11 @@
       publishedChartId: "",
       lastShareUrl: "",
       browseSort: "newest",
+      browseMineOnly: false,
       browseCharts: [],
+      currentUser: null,
+      activeRemoteChartId: "",
+      authMode: "login",
       tapTimes: [],
       toolMode: "seek",
       autoLength: true,
@@ -1601,8 +1779,11 @@
       miss: 0,
       hitNotes: new Set(),
       missedNotes: new Set(),
-      judgementLog: []
+      judgementLog: [],
+      scoreSubmitted: false
     };
+
+    let awaitingPlayStart = false;
 
     const brushes = createDefaultBrushes();
 
@@ -1625,6 +1806,7 @@
       playerMount: document.getElementById("playerMount"),
       playerOverlay: document.getElementById("playerOverlay"),
       feedbackLayer: document.getElementById("feedbackLayer"),
+      pressStartBanner: document.getElementById("pressStartBanner"),
       playScore: document.getElementById("playScore"),
       playCombo: document.getElementById("playCombo"),
       playPerfect: document.getElementById("playPerfect"),
@@ -1642,6 +1824,18 @@
       refreshCharts: document.getElementById("refreshCharts"),
       browseStatus: document.getElementById("browseStatus"),
       chartList: document.getElementById("chartList"),
+      accountLabel: document.getElementById("accountLabel"),
+      accountStatus: document.getElementById("accountStatus"),
+      accountUsername: document.getElementById("accountUsername"),
+      accountPassword: document.getElementById("accountPassword"),
+      loginAccount: document.getElementById("loginAccount"),
+      createAccount: document.getElementById("createAccount"),
+      logoutAccount: document.getElementById("logoutAccount"),
+      myCharts: document.getElementById("myCharts"),
+      authModal: document.getElementById("authModal"),
+      authTitle: document.getElementById("authTitle"),
+      authSubmit: document.getElementById("authSubmit"),
+      authCancel: document.getElementById("authCancel"),
       seekMode: document.getElementById("seekMode"),
       selectMode: document.getElementById("selectMode"),
       nodeMode: document.getElementById("nodeMode"),
@@ -2865,6 +3059,8 @@
     }
 
     function startPlayback() {
+      awaitingPlayStart = false;
+      el.pressStartBanner.classList.remove("visible");
       ensureAudio();
       state.localTime = timelineTime();
       state.localStartedAt = performance.now();
@@ -2933,6 +3129,11 @@
     }
 
     function playPause() {
+      if (awaitingPlayStart && state.appView === "play") {
+        startPlayback();
+        return;
+      }
+
       if (state.isPlaying) {
         pausePlayback(true);
       } else {
@@ -3190,6 +3391,8 @@
 
       if (view !== "play") {
         playState.active = false;
+        awaitingPlayStart = false;
+        el.pressStartBanner.classList.remove("visible");
         updatePlayHud();
       }
 
@@ -3214,6 +3417,7 @@
       playState.hitNotes = new Set();
       playState.missedNotes = new Set();
       playState.judgementLog = [];
+      playState.scoreSubmitted = false;
       el.feedbackLayer.innerHTML = "";
       updatePlayHud();
     }
@@ -3229,7 +3433,7 @@
     function showJudgementFeedback(kind) {
       const label = kind === "perfect" ? "Perfect" : kind === "good" ? "Good" : "Miss";
       const pop = document.createElement("div");
-      pop.className = `judgement-pop ${kind}`;
+      pop.className = `judgement-pop pixel-text ${kind}`;
       pop.textContent = label;
 
       let burst;
@@ -3354,21 +3558,25 @@
       setAppView("play");
       if (restart) {
         resetPlaySession();
-        setTimelineTime(0, true);
       } else {
         playState.active = true;
         updatePlayHud();
       }
-      startPlayback();
+      pausePlayback(true);
+      setTimelineTime(0, true);
+      awaitingPlayStart = true;
+      el.pressStartBanner.classList.add("visible");
       el.playerOverlay.focus({ preventScroll: true });
-      el.videoStatus.textContent = "Play Mode: press Space on input nodes. Esc exits play mode.";
+      el.videoStatus.textContent = "Play Mode: press Space or click PRESS START.";
       el.videoStatus.classList.remove("warning");
     }
 
     function restartPlayMode() {
       resetPlaySession();
+      pausePlayback(true);
       setTimelineTime(0, true);
-      startPlayback();
+      awaitingPlayStart = true;
+      el.pressStartBanner.classList.add("visible");
     }
 
     function buildPublishMetadata() {
@@ -3526,15 +3734,18 @@
         }
 
         if (!response.ok) {
+          const apiError = await readApiError(response);
           if (response.status === 501 || response.status === 404 || response.status === 405) {
             throw new Error(`API returned ${response.status}. Publishing needs the Cloudflare Pages/Workers API, not the static Python server.`);
           }
-          throw new Error(`API returned ${response.status}`);
+          throw new Error(apiError || `API returned ${response.status}`);
         }
 
         const data = await response.json();
         state.publishedChartId = data.id || state.publishedChartId;
+        state.activeRemoteChartId = state.publishedChartId;
         state.lastShareUrl = data.shareUrl || `${window.location.origin}/play/${state.publishedChartId}`;
+        await refreshAccount();
         el.videoStatus.textContent = `Published chart. Share URL: ${state.lastShareUrl}`;
         el.videoStatus.classList.remove("warning");
       } catch (error) {
@@ -3557,9 +3768,97 @@
       window.open(state.lastShareUrl, "_blank", "noopener");
     }
 
+    async function refreshAccount() {
+      if (IS_LOCAL_DUMMY_API) {
+        state.currentUser = null;
+        updateAccountPanel();
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
+        if (!response.ok) throw new Error((await readApiError(response)) || `API returned ${response.status}`);
+        const data = await response.json();
+        state.currentUser = data.user || null;
+      } catch {
+        state.currentUser = null;
+      }
+      updateAccountPanel();
+    }
+
+    function updateAccountPanel() {
+      const user = state.currentUser;
+      el.accountLabel.textContent = user ? `${user.username}${user.isAdmin ? " (Admin)" : ""}` : "Guest";
+      el.accountStatus.textContent = user
+        ? "Logged in. Owned charts can be deleted from Browse."
+        : "Create account or login to manage charts.";
+      el.logoutAccount.style.display = user ? "" : "none";
+      el.myCharts.style.display = user ? "" : "none";
+      el.loginAccount.style.display = user ? "none" : "";
+      el.createAccount.style.display = user ? "none" : "";
+    }
+
+    function openAuthModal(mode) {
+      state.authMode = mode;
+      el.authTitle.textContent = mode === "login" ? "Login" : "Register";
+      el.authSubmit.textContent = mode === "login" ? "Login" : "Register";
+      el.accountStatus.textContent = mode === "login"
+        ? "Enter username and password."
+        : "Choose 3-24 character username and 8+ character password.";
+      el.authModal.classList.add("open");
+      el.authModal.setAttribute("aria-hidden", "false");
+      el.accountUsername.focus();
+    }
+
+    function closeAuthModal() {
+      el.authModal.classList.remove("open");
+      el.authModal.setAttribute("aria-hidden", "true");
+    }
+
+    async function submitAccount(mode) {
+      const username = el.accountUsername.value.trim();
+      const password = el.accountPassword.value;
+      if (!username || !password) {
+        el.accountStatus.textContent = "Username and password required.";
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/auth/${mode}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ username, password })
+        });
+        if (!response.ok) throw new Error((await readApiError(response)) || `API returned ${response.status}`);
+        const data = await response.json();
+        state.currentUser = data.user || null;
+        el.accountPassword.value = "";
+        closeAuthModal();
+        updateAccountPanel();
+        await loadBrowseCharts();
+      } catch (error) {
+        el.accountStatus.textContent = `${mode === "login" ? "Login" : "Create"} failed: ${error.message || "API unavailable"}`;
+      }
+    }
+
+    async function logoutAccount() {
+      try {
+        await fetch(`${API_BASE}/api/auth/logout`, {
+          method: "POST",
+          credentials: "include"
+        });
+      } catch {}
+      state.currentUser = null;
+      state.browseMineOnly = false;
+      updateAccountPanel();
+      await loadBrowseCharts();
+    }
+
     async function loadBrowseCharts() {
       el.sortNewest.classList.toggle("active", state.browseSort === "newest");
       el.sortPopular.classList.toggle("active", state.browseSort === "popular");
+      el.myCharts.classList.toggle("active", state.browseMineOnly);
       el.browseStatus.textContent = "Loading shared charts...";
 
       if (IS_LOCAL_DUMMY_API) {
@@ -3572,17 +3871,18 @@
       }
 
       try {
-        const response = await fetch(`${API_BASE}/api/charts?sort=${encodeURIComponent(state.browseSort)}`, {
+        const mine = state.browseMineOnly ? "&mine=1" : "";
+        const response = await fetch(`${API_BASE}/api/charts?sort=${encodeURIComponent(state.browseSort)}${mine}`, {
           credentials: "include"
         });
-        if (!response.ok) throw new Error(`API returned ${response.status}`);
+        if (!response.ok) throw new Error((await readApiError(response)) || `API returned ${response.status}`);
 
         const data = await response.json();
         state.browseCharts = Array.isArray(data.charts) ? data.charts : [];
         renderBrowseCharts();
         el.browseStatus.textContent = state.browseCharts.length
-          ? `${state.browseCharts.length} public YouTube chart${state.browseCharts.length === 1 ? "" : "s"} loaded.`
-          : "No public YouTube charts found yet.";
+          ? `${state.browseCharts.length} ${state.browseMineOnly ? "owned" : "public"} YouTube chart${state.browseCharts.length === 1 ? "" : "s"} loaded.`
+          : state.browseMineOnly ? "No charts owned by this account yet." : "No public YouTube charts found yet.";
       } catch (error) {
         state.browseCharts = [];
         renderBrowseCharts();
@@ -3617,16 +3917,98 @@
 
         const meta = document.createElement("div");
         meta.className = "chart-meta";
-        meta.textContent = `Plays ${chart.playCount || 0} | Likes ${chart.likeCount || 0} | ${chart.createdAt || ""}`;
+        meta.textContent = `By ${chart.creatorName || "Guest"} | Plays ${chart.playCount || 0} | Likes ${chart.likeCount || 0} | High ${chart.highScore || 0}`;
 
         const play = document.createElement("button");
         play.className = "primary";
         play.type = "button";
-        play.textContent = "Play";
+        play.textContent = "▶ Play";
         play.addEventListener("click", () => openRemoteChart(chart.id));
 
-        card.append(title, description, meta, play);
+        const like = document.createElement("button");
+        like.className = `like-btn${chart.likedByMe ? " liked" : ""}`;
+        like.type = "button";
+        like.textContent = `♪ ${chart.likeCount || 0}`;
+        like.title = "Like this chart";
+        like.addEventListener("click", () => likeChart(chart.id));
+
+        const actions = document.createElement("div");
+        actions.className = "chart-actions";
+        actions.append(play, like);
+
+        if (chart.canDelete) {
+          const remove = document.createElement("button");
+          remove.className = "danger";
+          remove.type = "button";
+          remove.textContent = "Delete";
+          remove.addEventListener("click", () => deleteChart(chart.id));
+          actions.appendChild(remove);
+        }
+
+        card.append(title, description, meta, actions);
         el.chartList.appendChild(card);
+      }
+    }
+
+    async function likeChart(chartId) {
+      try {
+        const response = await fetch(`${API_BASE}/api/charts/${encodeURIComponent(chartId)}/like`, {
+          method: "POST",
+          credentials: "include"
+        });
+        if (!response.ok) throw new Error((await readApiError(response)) || `API returned ${response.status}`);
+        const data = await response.json();
+        const chart = state.browseCharts.find(item => item.id === chartId);
+        if (chart) {
+          chart.likedByMe = data.liked;
+          chart.likeCount = data.likeCount;
+          renderBrowseCharts();
+        }
+      } catch (error) {
+        el.browseStatus.textContent = `Like failed: ${error.message || "API unavailable"}`;
+      }
+    }
+
+    async function deleteChart(chartId) {
+      if (!window.confirm("Delete this chart?")) return;
+      try {
+        const response = await fetch(`${API_BASE}/api/charts/${encodeURIComponent(chartId)}`, {
+          method: "DELETE",
+          credentials: "include"
+        });
+        if (!response.ok) throw new Error((await readApiError(response)) || `API returned ${response.status}`);
+        state.browseCharts = state.browseCharts.filter(chart => chart.id !== chartId);
+        renderBrowseCharts();
+        el.browseStatus.textContent = "Chart deleted.";
+      } catch (error) {
+        el.browseStatus.textContent = `Delete failed: ${error.message || "API unavailable"}`;
+      }
+    }
+
+    async function submitHighScore() {
+      if (IS_LOCAL_DUMMY_API || !state.activeRemoteChartId || playState.scoreSubmitted || playState.score <= 0) return;
+      playState.scoreSubmitted = true;
+      try {
+        const response = await fetch(`${API_BASE}/api/charts/${encodeURIComponent(state.activeRemoteChartId)}/score`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            score: playState.score,
+            maxCombo: playState.maxCombo,
+            perfect: playState.perfect,
+            good: playState.good,
+            miss: playState.miss
+          })
+        });
+        if (!response.ok) throw new Error((await readApiError(response)) || `API returned ${response.status}`);
+        const data = await response.json();
+        el.videoStatus.textContent = `Score submitted. Chart high score: ${data.highScore || playState.score}`;
+        el.videoStatus.classList.remove("warning");
+      } catch (error) {
+        playState.scoreSubmitted = false;
+        el.videoStatus.textContent = `Score submit failed: ${error.message || "API unavailable"}`;
+        el.videoStatus.classList.add("warning");
       }
     }
 
@@ -3640,7 +4022,7 @@
           const response = await fetch(`${API_BASE}/api/charts/${encodeURIComponent(chartId)}`, {
             credentials: "include"
           });
-          if (!response.ok) throw new Error(`API returned ${response.status}`);
+          if (!response.ok) throw new Error((await readApiError(response)) || `API returned ${response.status}`);
           data = await response.json();
         }
         const payload = data.chartPayload || data.latestVersion?.chartPayload;
@@ -3648,6 +4030,7 @@
 
         applyProjectData(payload);
         state.publishedChartId = data.id || chartId;
+        state.activeRemoteChartId = data.id || chartId;
         state.lastShareUrl = `${window.location.origin}/play/${state.publishedChartId}`;
 
         const videoId = data.media?.youtubeVideoId || payload.media?.youtubeVideoId || payload.videoId;
@@ -3688,6 +4071,21 @@
       const match = window.location.pathname.match(/\/play\/([^/]+)/);
       if (match) {
         await openRemoteChart(decodeURIComponent(match[1]));
+      }
+    }
+
+    async function readApiError(response) {
+      try {
+        const text = await response.text();
+        if (!text) return "";
+        try {
+          const data = JSON.parse(text);
+          return data.error || data.message || text.slice(0, 240);
+        } catch {
+          return text.replace(/\s+/g, " ").trim().slice(0, 240);
+        }
+      } catch {
+        return "";
       }
     }
 
@@ -4666,11 +5064,12 @@
       if (time >= totalSeconds() && state.isPlaying) {
         pausePlayback(true);
         state.localTime = totalSeconds();
+        submitHighScore();
       }
     }
 
-    function beatPulseValue(currentBeat) {
-      if (!state.isPlaying) return 0;
+    function beatPulseValue(currentBeat, force = false) {
+      if (!force && !state.isPlaying) return 0;
 
       const phase = currentBeat - Math.floor(currentBeat);
       const distance = Math.min(phase, 1 - phase);
@@ -4679,12 +5078,17 @@
     }
 
     function updateBeatReactiveUI() {
-      const currentBeat = secondsToBeat(timelineTime());
-      const globalPulse = beatPulseValue(currentBeat);
+      const spb = secondsPerBeat();
+      const currentBeat = awaitingPlayStart && spb > 0
+        ? (performance.now() / 1000) / spb
+        : secondsToBeat(timelineTime());
+      const globalPulse = beatPulseValue(currentBeat, awaitingPlayStart);
 
       for (const node of beatReactiveElements) {
         node.style.setProperty("--beat-pulse", globalPulse.toFixed(3));
       }
+
+      el.pressStartBanner.style.setProperty("--beat-pulse", globalPulse.toFixed(3));
 
       const shouldPulseNotes = state.isPlaying && state.notes.length > 0;
       const noteNodes = el.timeline.querySelectorAll(".note[data-note-beat]");
@@ -4727,13 +5131,14 @@
     });
     el.playPause.addEventListener("click", playPause);
     el.editorView.addEventListener("click", () => setAppView("editor"));
-    el.playView.addEventListener("click", () => startPlayMode({ restart: false }));
+    el.playView.addEventListener("click", () => startPlayMode({ restart: true }));
     el.browseView.addEventListener("click", () => {
       setAppView("browse");
       loadBrowseCharts();
     });
     el.testPlay.addEventListener("click", () => startPlayMode({ restart: true }));
     el.playModePause.addEventListener("click", playPause);
+    el.pressStartBanner.addEventListener("click", playPause);
     el.restartPlay.addEventListener("click", restartPlayMode);
     el.exitPlay.addEventListener("click", () => {
       pausePlayback(true);
@@ -4750,7 +5155,22 @@
       state.browseSort = "popular";
       loadBrowseCharts();
     });
+    el.myCharts.addEventListener("click", () => {
+      state.browseMineOnly = !state.browseMineOnly;
+      loadBrowseCharts();
+    });
     el.refreshCharts.addEventListener("click", loadBrowseCharts);
+    el.loginAccount.addEventListener("click", () => openAuthModal("login"));
+    el.createAccount.addEventListener("click", () => openAuthModal("register"));
+    el.authSubmit.addEventListener("click", () => submitAccount(state.authMode));
+    el.authCancel.addEventListener("click", closeAuthModal);
+    el.authModal.addEventListener("click", (event) => {
+      if (event.target === el.authModal) closeAuthModal();
+    });
+    el.accountPassword.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submitAccount(state.authMode);
+    });
+    el.logoutAccount.addEventListener("click", logoutAccount);
     el.publishChart.addEventListener("click", publishCurrentChart);
     el.openShareUrl.addEventListener("click", openShareUrl);
 
@@ -4923,6 +5343,10 @@
       if (event.code === "Space") {
         event.preventDefault();
         event.stopImmediatePropagation();
+        if (awaitingPlayStart) {
+          playPause();
+          return;
+        }
         judgePlayInput();
       }
     }, true);
@@ -4934,10 +5358,20 @@
       if (event.code === "Space" && !typing) {
         event.preventDefault();
         if (state.appView === "play" && playState.active) {
+          if (awaitingPlayStart) {
+            playPause();
+            return;
+          }
           judgePlayInput();
           return;
         }
         playPause();
+        return;
+      }
+
+      if (event.key === "Escape" && el.authModal.classList.contains("open")) {
+        event.preventDefault();
+        closeAuthModal();
         return;
       }
 
@@ -5015,6 +5449,7 @@
     renderTimeline();
     updatePlayButton();
     animationLoop();
+    refreshAccount();
     bootstrapSharedRoute();
   
   </script>

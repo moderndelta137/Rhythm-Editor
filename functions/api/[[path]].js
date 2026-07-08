@@ -1,20 +1,25 @@
 const SESSION_COOKIE = "rhythm_session";
 const OAUTH_STATE_COOKIE = "rhythm_oauth_state";
 const SESSION_DAYS = 30;
+const DEFAULT_ADMIN_USERNAME = "admin";
+const DEFAULT_ADMIN_PASSWORD = "admin-rhythm-2026";
+let schemaReady = false;
 
 export async function onRequest(context) {
-  const { request, env, params } = context;
-  const url = new URL(request.url);
-  const pathParam = params.path || [];
-  const path = `/${Array.isArray(pathParam) ? pathParam.join("/") : pathParam}`;
-
   try {
+    const { request, env, params = {} } = context || {};
+    if (!request) throw httpError(500, "Request context is unavailable");
+
+    const pathParam = params.path || [];
+    const path = `/${Array.isArray(pathParam) ? pathParam.join("/") : pathParam}`;
+    await ensureAppSchema(env);
+
     if (path === "/auth/github/start" && request.method === "GET") {
-      return startGithubLogin(request, env);
+      return await startGithubLogin(request, env);
     }
 
     if (path === "/auth/github/callback" && request.method === "GET") {
-      return finishGithubLogin(request, env);
+      return await finishGithubLogin(request, env);
     }
 
     if (path === "/me" && request.method === "GET") {
@@ -22,60 +27,93 @@ export async function onRequest(context) {
       return json({ user });
     }
 
+    if (path === "/auth/register" && request.method === "POST") {
+      return await registerAccount(request, env);
+    }
+
+    if (path === "/auth/login" && request.method === "POST") {
+      return await loginAccount(request, env);
+    }
+
+    if (path === "/auth/logout" && request.method === "POST") {
+      return await logoutAccount(request, env);
+    }
+
     if (path === "/charts" && request.method === "GET") {
-      return listCharts(request, env);
+      return await listCharts(request, env);
     }
 
     if (path === "/charts" && request.method === "POST") {
       const user = await requireUser(request, env);
-      return createChart(request, env, user);
+      return await createChart(request, env, user);
     }
 
     const chartMatch = path.match(/^\/charts\/([^/]+)$/);
     if (chartMatch && request.method === "GET") {
-      return getChart(env, chartMatch[1]);
+      return await getChart(env, chartMatch[1], request);
     }
 
     if (chartMatch && request.method === "PUT") {
       const user = await requireUser(request, env);
-      return updateChart(request, env, user, chartMatch[1]);
+      return await updateChart(request, env, user, chartMatch[1]);
+    }
+
+    if (chartMatch && request.method === "DELETE") {
+      const user = await requireUser(request, env);
+      return await deleteChart(env, user, chartMatch[1]);
     }
 
     const playMatch = path.match(/^\/charts\/([^/]+)\/play$/);
     if (playMatch && request.method === "POST") {
-      return incrementStat(env, playMatch[1], "play_count");
+      return await incrementStat(env, playMatch[1], "play_count");
     }
 
     const likeMatch = path.match(/^\/charts\/([^/]+)\/like$/);
     if (likeMatch && request.method === "POST") {
-      return incrementStat(env, likeMatch[1], "like_count");
+      const user = await requireUser(request, env);
+      return await toggleLike(env, user, likeMatch[1]);
+    }
+
+    const scoreMatch = path.match(/^\/charts\/([^/]+)\/score$/);
+    if (scoreMatch && request.method === "POST") {
+      const user = await requireUser(request, env);
+      return await submitScore(request, env, user, scoreMatch[1]);
     }
 
     return json({ error: "Not found" }, 404);
   } catch (error) {
-    const status = error.status || 500;
-    return json({ error: error.message || "Server error" }, status);
+    return errorResponse(error);
   }
 }
 
 async function listCharts(request, env) {
+  const db = requireDb(env);
+  const user = await requireOptionalUser(request, env);
   const url = new URL(request.url);
   const sort = url.searchParams.get("sort") === "popular" ? "popular" : "newest";
+  const mineOnly = url.searchParams.get("mine") === "1";
   const order = sort === "popular"
-    ? "s.like_count DESC, s.play_count DESC, c.created_at DESC"
+    ? "s.like_count DESC, high_score DESC, s.play_count DESC, c.created_at DESC"
     : "c.created_at DESC";
 
-  const result = await env.DB.prepare(`
-    SELECT c.id, c.title, c.description, c.youtube_video_id, c.created_at,
-           s.play_count, s.like_count, s.copied_count
+  const result = await db.prepare(`
+    SELECT c.id, c.creator_id, c.title, c.description, c.youtube_video_id, c.created_at,
+           s.play_count, s.like_count, s.copied_count,
+           u.username AS creator_name,
+           COALESCE(MAX(sc.score), 0) AS high_score,
+           EXISTS(SELECT 1 FROM chart_likes l WHERE l.chart_id = c.id AND l.user_id = ?) AS liked_by_me
     FROM charts c
     JOIN chart_stats s ON s.chart_id = c.id
+    LEFT JOIN users u ON u.id = c.creator_id
+    LEFT JOIN chart_scores sc ON sc.chart_id = c.id
     WHERE c.visibility = 'public'
       AND c.media_kind = 'youtube'
       AND c.youtube_video_id IS NOT NULL
+      AND (? = '' OR c.creator_id = ?)
+    GROUP BY c.id
     ORDER BY ${order}
     LIMIT 100
-  `).all();
+  `).bind(user?.id || "", mineOnly ? user?.id || "__none__" : "", user?.id || "").all();
 
   return json({
     charts: (result.results || []).map(row => ({
@@ -83,35 +121,59 @@ async function listCharts(request, env) {
       title: row.title,
       description: row.description,
       media: { kind: "youtube", youtubeVideoId: row.youtube_video_id },
+      creatorId: row.creator_id,
+      creatorName: row.creator_name || "Guest",
       playCount: row.play_count,
       likeCount: row.like_count,
       copiedCount: row.copied_count,
+      highScore: row.high_score || 0,
+      likedByMe: Boolean(row.liked_by_me),
+      canDelete: Boolean(user && (user.isAdmin || user.id === row.creator_id)),
       createdAt: row.created_at
     }))
   });
 }
 
-async function getChart(env, chartId) {
-  const chart = await env.DB.prepare(`
-    SELECT c.*, s.play_count, s.like_count, s.copied_count, v.chart_payload
+async function getChart(env, chartId, request = null) {
+  const db = requireDb(env);
+  const user = request ? await requireOptionalUser(request, env) : null;
+  const chart = await db.prepare(`
+    SELECT c.*, s.play_count, s.like_count, s.copied_count, v.chart_payload,
+           u.username AS creator_name,
+           COALESCE((SELECT MAX(score) FROM chart_scores WHERE chart_id = c.id), 0) AS high_score,
+           EXISTS(SELECT 1 FROM chart_likes l WHERE l.chart_id = c.id AND l.user_id = ?) AS liked_by_me
     FROM charts c
     JOIN chart_stats s ON s.chart_id = c.id
     JOIN chart_versions v ON v.chart_id = c.id AND v.version = c.latest_version
+    LEFT JOIN users u ON u.id = c.creator_id
     WHERE c.id = ?
-  `).bind(chartId).first();
+  `).bind(user?.id || "", chartId).first();
 
   if (!chart) throw httpError(404, "Chart not found");
 
-  return json(formatChart(chart, true));
+  const scores = await db.prepare(`
+    SELECT username, score, max_combo, perfect, good, miss, created_at
+    FROM chart_scores
+    WHERE chart_id = ?
+    ORDER BY score DESC, created_at ASC
+    LIMIT 10
+  `).bind(chartId).all();
+
+  const formatted = formatChart(chart, true);
+  formatted.likedByMe = Boolean(chart.liked_by_me);
+  formatted.canDelete = Boolean(user && (user.isAdmin || user.id === chart.creator_id));
+  formatted.scores = scores.results || [];
+  return json(formatted);
 }
 
 async function createChart(request, env, user) {
+  const db = requireDb(env);
   const body = await parseChartRequest(request);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  await env.DB.batch([
-    env.DB.prepare(`
+  await db.batch([
+    db.prepare(`
       INSERT INTO charts (
         id, creator_id, title, description, media_kind, youtube_video_id,
         local_name, local_size, local_duration, visibility, latest_version,
@@ -131,24 +193,25 @@ async function createChart(request, env, user) {
       now,
       now
     ),
-    env.DB.prepare(`
+    db.prepare(`
       INSERT INTO chart_versions (chart_id, version, chart_payload, created_at)
       VALUES (?, 1, ?, ?)
     `).bind(id, JSON.stringify(body.chartPayload), now),
-    env.DB.prepare(`
+    db.prepare(`
       INSERT INTO chart_stats (chart_id, updated_at)
       VALUES (?, ?)
     `).bind(id, now)
   ]);
 
-  return json({
+  return withUserSession(json({
     id,
     shareUrl: `${new URL(request.url).origin}/play/${id}`
-  }, 201);
+  }, 201), user);
 }
 
 async function updateChart(request, env, user, chartId) {
-  const existing = await env.DB.prepare("SELECT * FROM charts WHERE id = ?").bind(chartId).first();
+  const db = requireDb(env);
+  const existing = await db.prepare("SELECT * FROM charts WHERE id = ?").bind(chartId).first();
   if (!existing) throw httpError(404, "Chart not found");
   if (existing.creator_id !== user.id) throw httpError(403, "Only the creator can edit this chart");
 
@@ -156,8 +219,8 @@ async function updateChart(request, env, user, chartId) {
   const nextVersion = Number(existing.latest_version || 1) + 1;
   const now = new Date().toISOString();
 
-  await env.DB.batch([
-    env.DB.prepare(`
+  await db.batch([
+    db.prepare(`
       UPDATE charts
       SET title = ?, description = ?, media_kind = ?, youtube_video_id = ?,
           local_name = ?, local_size = ?, local_duration = ?, visibility = ?,
@@ -176,30 +239,90 @@ async function updateChart(request, env, user, chartId) {
       now,
       chartId
     ),
-    env.DB.prepare(`
+    db.prepare(`
       INSERT INTO chart_versions (chart_id, version, chart_payload, created_at)
       VALUES (?, ?, ?, ?)
     `).bind(chartId, nextVersion, JSON.stringify(body.chartPayload), now)
   ]);
 
-  return json({
+  return withUserSession(json({
     id: chartId,
     version: nextVersion,
     shareUrl: `${new URL(request.url).origin}/play/${chartId}`
-  });
+  }), user);
 }
 
 async function incrementStat(env, chartId, column) {
+  const db = requireDb(env);
   const allowed = new Set(["play_count", "like_count", "copied_count"]);
   if (!allowed.has(column)) throw httpError(400, "Invalid stat");
 
-  const result = await env.DB.prepare(`
+  const result = await db.prepare(`
     UPDATE chart_stats
     SET ${column} = ${column} + 1, updated_at = ?
     WHERE chart_id = ?
   `).bind(new Date().toISOString(), chartId).run();
 
   if (!result.meta?.changes) throw httpError(404, "Chart not found");
+  return json({ ok: true });
+}
+
+async function toggleLike(env, user, chartId) {
+  const db = requireDb(env);
+  const chart = await db.prepare("SELECT id FROM charts WHERE id = ?").bind(chartId).first();
+  if (!chart) throw httpError(404, "Chart not found");
+
+  const existing = await db.prepare("SELECT chart_id FROM chart_likes WHERE chart_id = ? AND user_id = ?").bind(chartId, user.id).first();
+  let liked = true;
+  if (existing) {
+    await db.prepare("DELETE FROM chart_likes WHERE chart_id = ? AND user_id = ?").bind(chartId, user.id).run();
+    liked = false;
+  } else {
+    await db.prepare("INSERT INTO chart_likes (chart_id, user_id, created_at) VALUES (?, ?, ?)").bind(chartId, user.id, new Date().toISOString()).run();
+  }
+
+  const count = await db.prepare("SELECT COUNT(*) AS count FROM chart_likes WHERE chart_id = ?").bind(chartId).first();
+  await db.prepare("UPDATE chart_stats SET like_count = ?, updated_at = ? WHERE chart_id = ?").bind(Number(count?.count || 0), new Date().toISOString(), chartId).run();
+  return json({ liked, likeCount: Number(count?.count || 0) });
+}
+
+async function submitScore(request, env, user, chartId) {
+  const db = requireDb(env);
+  const chart = await db.prepare("SELECT id FROM charts WHERE id = ?").bind(chartId).first();
+  if (!chart) throw httpError(404, "Chart not found");
+
+  const body = await request.json().catch(() => null);
+  const score = Math.max(0, Math.floor(Number(body?.score) || 0));
+  const maxCombo = Math.max(0, Math.floor(Number(body?.maxCombo) || 0));
+  const perfect = Math.max(0, Math.floor(Number(body?.perfect) || 0));
+  const good = Math.max(0, Math.floor(Number(body?.good) || 0));
+  const miss = Math.max(0, Math.floor(Number(body?.miss) || 0));
+  if (!score) throw httpError(400, "Score is required");
+
+  const now = new Date().toISOString();
+  await db.prepare(`
+    INSERT INTO chart_scores (id, chart_id, user_id, username, score, max_combo, perfect, good, miss, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(crypto.randomUUID(), chartId, user.id, user.username || "Guest", score, maxCombo, perfect, good, miss, now).run();
+
+  const high = await db.prepare("SELECT MAX(score) AS high_score FROM chart_scores WHERE chart_id = ?").bind(chartId).first();
+  return json({ highScore: Number(high?.high_score || score) });
+}
+
+async function deleteChart(env, user, chartId) {
+  const db = requireDb(env);
+  const chart = await db.prepare("SELECT creator_id FROM charts WHERE id = ?").bind(chartId).first();
+  if (!chart) throw httpError(404, "Chart not found");
+  if (!user.isAdmin && chart.creator_id !== user.id) throw httpError(403, "Only owner or admin can delete this chart");
+
+  await db.batch([
+    db.prepare("DELETE FROM chart_likes WHERE chart_id = ?").bind(chartId),
+    db.prepare("DELETE FROM chart_scores WHERE chart_id = ?").bind(chartId),
+    db.prepare("DELETE FROM chart_reports WHERE chart_id = ?").bind(chartId),
+    db.prepare("DELETE FROM chart_stats WHERE chart_id = ?").bind(chartId),
+    db.prepare("DELETE FROM chart_versions WHERE chart_id = ?").bind(chartId),
+    db.prepare("DELETE FROM charts WHERE id = ?").bind(chartId)
+  ]);
   return json({ ok: true });
 }
 
@@ -240,8 +363,8 @@ async function parseChartRequest(request) {
       kind: normalizedKind,
       youtubeVideoId: normalizedKind === "youtube" ? youtubeVideoId : null,
       localName: normalizedKind === "youtube" ? "" : String(media.localName || body.chartPayload.localMediaName || "").slice(0, 240),
-      localSize: normalizedKind === "youtube" ? 0 : Number(media.localSize || body.chartPayload.localMediaSize || 0),
-      localDuration: normalizedKind === "youtube" ? 0 : Number(media.localDuration || body.chartPayload.localMediaDuration || 0)
+      localSize: normalizedKind === "youtube" ? 0 : finiteNumber(media.localSize || body.chartPayload.localMediaSize, 0),
+      localDuration: normalizedKind === "youtube" ? 0 : finiteNumber(media.localDuration || body.chartPayload.localMediaDuration, 0)
     },
     chartPayload
   };
@@ -261,10 +384,12 @@ function formatChart(row, includePayload = false) {
       localDuration: row.local_duration
     },
     creatorId: row.creator_id,
+    creatorName: row.creator_name || "Guest",
     version: row.latest_version,
     playCount: row.play_count,
     likeCount: row.like_count,
     copiedCount: row.copied_count,
+    highScore: row.high_score || 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -276,7 +401,82 @@ function formatChart(row, includePayload = false) {
   return chart;
 }
 
+async function registerAccount(request, env) {
+  const db = requireDb(env);
+  const body = await request.json().catch(() => null);
+  const username = normalizeUsername(body?.username);
+  const password = String(body?.password || "");
+  if (!username) throw httpError(400, "Username must be 3-24 letters, numbers, _ or -");
+  if (password.length < 8) throw httpError(400, "Password must be at least 8 characters");
+
+  const existing = await db.prepare("SELECT id FROM users WHERE lower(username) = lower(?)").bind(username).first();
+  if (existing) throw httpError(409, "Username already exists");
+
+  const now = new Date().toISOString();
+  const userId = `local:${crypto.randomUUID()}`;
+  const passwordHash = await hashPassword(password);
+  const sessionId = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400 * 1000).toISOString();
+
+  await db.batch([
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, password_hash, is_admin, avatar_url, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 0, '', ?, ?)
+    `).bind(userId, userId, username, passwordHash, now, now),
+    db.prepare(`
+      INSERT INTO sessions (id, user_id, expires_at, created_at)
+      VALUES (?, ?, ?, ?)
+    `).bind(sessionId, userId, expiresAt, now)
+  ]);
+
+  const user = { id: userId, username, avatarUrl: "", isAdmin: false };
+  return withUserSession(json({ user }), { sessionCookie: cookie(SESSION_COOKIE, sessionId, { maxAge: SESSION_DAYS * 86400 }) });
+}
+
+async function loginAccount(request, env) {
+  const db = requireDb(env);
+  const body = await request.json().catch(() => null);
+  const username = normalizeUsername(body?.username);
+  const password = String(body?.password || "");
+  if (!username || !password) throw httpError(400, "Username and password are required");
+
+  const row = await db.prepare("SELECT id, username, avatar_url, password_hash, is_admin FROM users WHERE lower(username) = lower(?)").bind(username).first();
+  if (!row?.password_hash || !(await verifyPassword(password, row.password_hash))) {
+    throw httpError(401, "Invalid username or password");
+  }
+
+  const sessionId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400 * 1000).toISOString();
+  await db.prepare("INSERT INTO sessions (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)").bind(sessionId, row.id, expiresAt, now).run();
+
+  const user = { id: row.id, username: row.username, avatarUrl: row.avatar_url || "", isAdmin: Boolean(row.is_admin) };
+  return withUserSession(json({ user }), { sessionCookie: cookie(SESSION_COOKIE, sessionId, { maxAge: SESSION_DAYS * 86400 }) });
+}
+
+async function logoutAccount(request, env) {
+  const db = requireDb(env);
+  const sessionId = getCookie(request, SESSION_COOKIE);
+  if (sessionId) {
+    await db.prepare("DELETE FROM sessions WHERE id = ?").bind(sessionId).run();
+  }
+  const response = json({ user: null });
+  response.headers.append("Set-Cookie", cookie(SESSION_COOKIE, "", { maxAge: 0 }));
+  return response;
+}
+
 async function startGithubLogin(request, env) {
+  if (!hasGithubEnv(env)) {
+    const user = await createGuestSession(env);
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: "/",
+        "Set-Cookie": user.sessionCookie
+      }
+    });
+  }
+
   assertGithubEnv(env);
   const url = new URL(request.url);
   const state = crypto.randomUUID();
@@ -298,6 +498,7 @@ async function startGithubLogin(request, env) {
 
 async function finishGithubLogin(request, env) {
   assertGithubEnv(env);
+  const db = requireDb(env);
   const url = new URL(request.url);
   const expectedState = getCookie(request, OAUTH_STATE_COOKIE);
   if (!expectedState || expectedState !== url.searchParams.get("state")) {
@@ -332,7 +533,7 @@ async function finishGithubLogin(request, env) {
 
   const userId = `github:${githubUser.id}`;
   const now = new Date().toISOString();
-  await env.DB.prepare(`
+  await db.prepare(`
     INSERT INTO users (id, github_id, username, avatar_url, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(github_id) DO UPDATE SET
@@ -343,7 +544,7 @@ async function finishGithubLogin(request, env) {
 
   const sessionId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400 * 1000).toISOString();
-  await env.DB.prepare(`
+  await db.prepare(`
     INSERT INTO sessions (id, user_id, expires_at, created_at)
     VALUES (?, ?, ?, ?)
   `).bind(sessionId, userId, expiresAt, now).run();
@@ -358,26 +559,236 @@ async function requireOptionalUser(request, env) {
   const sessionId = getCookie(request, SESSION_COOKIE);
   if (!sessionId) return null;
 
-  const row = await env.DB.prepare(`
-    SELECT u.id, u.username, u.avatar_url
+  const db = requireDb(env);
+  const row = await db.prepare(`
+    SELECT u.id, u.username, u.avatar_url, u.is_admin
     FROM sessions s
     JOIN users u ON u.id = s.user_id
     WHERE s.id = ? AND s.expires_at > ?
   `).bind(sessionId, new Date().toISOString()).first();
 
-  return row ? { id: row.id, username: row.username, avatarUrl: row.avatar_url } : null;
+  return row ? { id: row.id, username: row.username, avatarUrl: row.avatar_url, isAdmin: Boolean(row.is_admin) } : null;
 }
 
 async function requireUser(request, env) {
   const user = await requireOptionalUser(request, env);
-  if (!user) throw httpError(401, "Login required");
-  return user;
+  if (user) return user;
+  if (!hasGithubEnv(env)) return createGuestSession(env);
+  throw httpError(401, "Login required");
+}
+
+async function createGuestSession(env) {
+  const db = requireDb(env);
+  const now = new Date().toISOString();
+  const userId = `guest:${crypto.randomUUID()}`;
+  const sessionId = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400 * 1000).toISOString();
+
+  await db.batch([
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, avatar_url, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(userId, userId, "Guest", "", now, now),
+    db.prepare(`
+      INSERT INTO sessions (id, user_id, expires_at, created_at)
+      VALUES (?, ?, ?, ?)
+    `).bind(sessionId, userId, expiresAt, now)
+  ]);
+
+  return {
+    id: userId,
+    username: "Guest",
+    avatarUrl: "",
+    isAdmin: false,
+    sessionCookie: cookie(SESSION_COOKIE, sessionId, { maxAge: SESSION_DAYS * 86400 })
+  };
+}
+
+function withUserSession(response, user) {
+  if (user?.sessionCookie) {
+    response.headers.append("Set-Cookie", user.sessionCookie);
+  }
+  return response;
+}
+
+function hasGithubEnv(env) {
+  return Boolean(env?.GITHUB_CLIENT_ID && env?.GITHUB_CLIENT_SECRET);
+}
+
+async function ensureAppSchema(env) {
+  if (schemaReady || !env?.DB) return;
+  const db = env.DB;
+  const migrations = [
+    `CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      github_id TEXT NOT NULL UNIQUE,
+      username TEXT NOT NULL,
+      avatar_url TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS charts (
+      id TEXT PRIMARY KEY,
+      creator_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      media_kind TEXT NOT NULL,
+      youtube_video_id TEXT,
+      local_name TEXT NOT NULL DEFAULT '',
+      local_size INTEGER NOT NULL DEFAULT 0,
+      local_duration REAL NOT NULL DEFAULT 0,
+      visibility TEXT NOT NULL,
+      latest_version INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (creator_id) REFERENCES users(id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS chart_versions (
+      chart_id TEXT NOT NULL,
+      version INTEGER NOT NULL,
+      chart_payload TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (chart_id, version),
+      FOREIGN KEY (chart_id) REFERENCES charts(id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS chart_stats (
+      chart_id TEXT PRIMARY KEY,
+      play_count INTEGER NOT NULL DEFAULT 0,
+      like_count INTEGER NOT NULL DEFAULT 0,
+      copied_count INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (chart_id) REFERENCES charts(id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS chart_reports (
+      id TEXT PRIMARY KEY,
+      chart_id TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      reporter_fingerprint TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (chart_id) REFERENCES charts(id)
+    )`,
+    "ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0",
+    `CREATE TABLE IF NOT EXISTS chart_likes (
+      chart_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (chart_id, user_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS chart_scores (
+      id TEXT PRIMARY KEY,
+      chart_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      max_combo INTEGER NOT NULL DEFAULT 0,
+      perfect INTEGER NOT NULL DEFAULT 0,
+      good INTEGER NOT NULL DEFAULT 0,
+      miss INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    "CREATE INDEX IF NOT EXISTS idx_users_username ON users (username)",
+    "CREATE INDEX IF NOT EXISTS idx_chart_scores_leaderboard ON chart_scores (chart_id, score DESC, created_at ASC)"
+  ];
+
+  for (const sql of migrations) {
+    try {
+      await db.prepare(sql).run();
+    } catch (error) {
+      if (!String(error?.message || "").toLowerCase().includes("duplicate column")) throw error;
+    }
+  }
+
+  await ensureAdminAccount(env);
+  schemaReady = true;
+}
+
+async function ensureAdminAccount(env) {
+  const db = requireDb(env);
+  const username = normalizeUsername(env.ADMIN_USERNAME || DEFAULT_ADMIN_USERNAME) || DEFAULT_ADMIN_USERNAME;
+  const password = String(env.ADMIN_PASSWORD || env.RHYTHM_ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD);
+  const existing = await db.prepare("SELECT id, password_hash, is_admin FROM users WHERE lower(username) = lower(?)").bind(username).first();
+  const now = new Date().toISOString();
+
+  if (!existing) {
+    const userId = `admin:${crypto.randomUUID()}`;
+    await db.prepare(`
+      INSERT INTO users (id, github_id, username, password_hash, is_admin, avatar_url, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 1, '', ?, ?)
+    `).bind(userId, userId, username, await hashPassword(password), now, now).run();
+    return;
+  }
+
+  if (!existing.is_admin || !existing.password_hash) {
+    await db.prepare("UPDATE users SET password_hash = ?, is_admin = 1, updated_at = ? WHERE id = ?").bind(await hashPassword(password), now, existing.id).run();
+  }
 }
 
 function assertGithubEnv(env) {
-  if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
+  if (!hasGithubEnv(env)) {
     throw httpError(500, "GitHub OAuth env vars are not configured");
   }
+}
+
+function requireDb(env) {
+  if (!env || !env.DB) {
+    throw httpError(500, "Cloudflare D1 binding DB is not configured");
+  }
+  return env.DB;
+}
+
+function finiteNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function normalizeUsername(value) {
+  const username = String(value || "").trim().slice(0, 24);
+  return /^[A-Za-z0-9_-]{3,24}$/.test(username) ? username : "";
+}
+
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await passwordKey(password, salt);
+  return `${base64Url(salt)}:${base64Url(new Uint8Array(key))}`;
+}
+
+async function verifyPassword(password, stored) {
+  const [saltText, hashText] = String(stored || "").split(":");
+  if (!saltText || !hashText) return false;
+  const salt = fromBase64Url(saltText);
+  const actual = new Uint8Array(await passwordKey(password, salt));
+  const expected = fromBase64Url(hashText);
+  if (actual.length !== expected.length) return false;
+  let diff = 0;
+  for (let index = 0; index < actual.length; index++) diff |= actual[index] ^ expected[index];
+  return diff === 0;
+}
+
+async function passwordKey(password, salt) {
+  const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  return crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 120000, hash: "SHA-256" }, material, 256);
+}
+
+function base64Url(bytes) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function fromBase64Url(text) {
+  const base64 = text.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(text.length / 4) * 4, "=");
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+  return bytes;
 }
 
 function getCookie(request, name) {
@@ -409,6 +820,22 @@ function json(value, status = 200) {
       "Cache-Control": "no-store"
     }
   });
+}
+
+function errorResponse(error) {
+  const status = Number.isInteger(error?.status) ? error.status : 500;
+  const message = error?.message || "Server error";
+  try {
+    return json({ error: message }, status);
+  } catch {
+    return new Response('{"error":"Server error"}', {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store"
+      }
+    });
+  }
 }
 
 function httpError(status, message) {

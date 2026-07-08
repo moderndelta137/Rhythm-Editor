@@ -2,6 +2,8 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   github_id TEXT NOT NULL UNIQUE,
   username TEXT NOT NULL,
+  password_hash TEXT NOT NULL DEFAULT '',
+  is_admin INTEGER NOT NULL DEFAULT 0,
   avatar_url TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -50,6 +52,30 @@ CREATE TABLE IF NOT EXISTS chart_stats (
   FOREIGN KEY (chart_id) REFERENCES charts(id)
 );
 
+CREATE TABLE IF NOT EXISTS chart_likes (
+  chart_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (chart_id, user_id),
+  FOREIGN KEY (chart_id) REFERENCES charts(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS chart_scores (
+  id TEXT PRIMARY KEY,
+  chart_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  username TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  max_combo INTEGER NOT NULL DEFAULT 0,
+  perfect INTEGER NOT NULL DEFAULT 0,
+  good INTEGER NOT NULL DEFAULT 0,
+  miss INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (chart_id) REFERENCES charts(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS chart_reports (
   id TEXT PRIMARY KEY,
   chart_id TEXT NOT NULL,
@@ -64,3 +90,9 @@ CREATE INDEX IF NOT EXISTS idx_charts_public_youtube_newest
 
 CREATE INDEX IF NOT EXISTS idx_chart_stats_popular
   ON chart_stats (like_count DESC, play_count DESC);
+
+CREATE INDEX IF NOT EXISTS idx_users_username
+  ON users (username);
+
+CREATE INDEX IF NOT EXISTS idx_chart_scores_leaderboard
+  ON chart_scores (chart_id, score DESC, created_at ASC);

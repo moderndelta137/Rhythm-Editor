@@ -34,6 +34,12 @@ if not exist "functions" (
   exit /b 1
 )
 
+if not exist "wrangler.toml" (
+  echo Could not find wrangler.toml.
+  pause
+  exit /b 1
+)
+
 echo Checking Cloudflare login...
 call npx.cmd wrangler whoami
 if %errorlevel% neq 0 (
@@ -51,12 +57,17 @@ mkdir "%DEPLOY_DIR%"
 
 copy /y "%SOURCE_HTML%" "%DEPLOY_DIR%\index.html" >nul
 copy /y "_redirects" "%DEPLOY_DIR%\_redirects" >nul
+copy /y "wrangler.toml" "%DEPLOY_DIR%\wrangler.toml" >nul
+if exist "schema.sql" copy /y "schema.sql" "%DEPLOY_DIR%\schema.sql" >nul
 xcopy /e /i /y "functions" "%DEPLOY_DIR%\functions" >nul
 
 echo.
 echo Deploying %PROJECT_NAME% to Cloudflare Pages...
-call npx.cmd wrangler pages deploy "%DEPLOY_DIR%" --project-name %PROJECT_NAME% --branch %BRANCH% --commit-dirty=true --commit-message "Update rhythm editor"
-if %errorlevel% neq 0 (
+pushd "%DEPLOY_DIR%"
+call npx.cmd wrangler pages deploy "." --project-name %PROJECT_NAME% --branch %BRANCH% --commit-dirty=true --commit-message "Update rhythm editor"
+set "DEPLOY_ERROR=%errorlevel%"
+popd
+if %DEPLOY_ERROR% neq 0 (
   echo.
   echo Deployment failed.
   pause
