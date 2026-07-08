@@ -515,7 +515,7 @@
     button {
       cursor: pointer;
       font-weight: 700;
-      transition: transform 0.06s ease, background 0.12s ease, border-color 0.12s ease;
+      transition: transform 0.06s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
       user-select: none;
       white-space: nowrap;
     }
@@ -532,6 +532,23 @@
     .primary {
       background: #254b63;
       border-color: #367395;
+    }
+
+    .beat-reactive {
+      --beat-pulse: 0;
+      --beat-scale: 0.045;
+      transform: translateZ(0) scale(calc(1 + var(--beat-pulse) * var(--beat-scale)));
+      box-shadow:
+        0 0 calc(var(--beat-pulse) * 18px) rgba(114, 215, 255, 0.32),
+        inset 0 0 calc(var(--beat-pulse) * 14px) rgba(255, 220, 110, 0.09);
+    }
+
+    button.beat-reactive:active {
+      transform: translateY(1px) scale(calc(1 + var(--beat-pulse) * var(--beat-scale)));
+    }
+
+    .primary.beat-reactive {
+      --beat-scale: 0.06;
     }
 
     .danger {
@@ -671,6 +688,10 @@
       stroke-width: 2;
       cursor: grab;
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+      transform-box: fill-box;
+      transform-origin: center;
+      transform: scale(calc(1 + var(--note-pulse, 0) * 0.38));
+      transition: filter 0.08s linear;
     }
 
     .note:active {
@@ -681,6 +702,12 @@
     .note-1 { fill: var(--medium); }
     .note-2 { fill: var(--strong); }
     .note-3 { fill: var(--very-strong); }
+
+    .note.beat-hot {
+      filter:
+        drop-shadow(0 0 9px rgba(255, 255, 255, 0.72))
+        drop-shadow(0 0 14px rgba(114, 215, 255, 0.58));
+    }
 
     .note-time,
     .note-type-label {
@@ -789,28 +816,36 @@
 
     .play-hud {
       position: absolute;
-      left: 16px;
-      right: 16px;
+      left: 50%;
+      right: auto;
       top: 14px;
-      display: grid;
-      grid-template-columns: repeat(5, minmax(84px, 1fr));
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 8px;
+      width: min(94%, 720px);
+      transform: translateX(-50%);
       z-index: 12;
       pointer-events: none;
     }
 
     .hud-item {
       min-width: 0;
-      padding: 8px 10px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 8px;
-      background: rgba(5, 7, 11, 0.72);
+      display: inline-flex;
+      align-items: baseline;
+      gap: 7px;
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+      background: rgba(5, 7, 11, 0.68);
       box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
+      --beat-scale: 0.03;
     }
 
     .hud-label {
-      display: block;
+      display: inline;
       color: var(--muted);
       font-size: 10px;
       font-weight: 800;
@@ -819,26 +854,64 @@
     }
 
     .hud-value {
-      display: block;
+      display: inline;
       color: var(--text);
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 900;
-      line-height: 1.1;
-      margin-top: 2px;
+      line-height: 1;
+      margin-top: 0;
     }
 
     .play-actions {
       position: absolute;
-      left: 16px;
-      bottom: 16px;
+      right: 12px;
+      bottom: 12px;
       z-index: 12;
       display: flex;
-      gap: 8px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 7px;
       pointer-events: auto;
     }
 
-    .app[data-view="play"] #playModePause,
+    .play-actions button {
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 12px;
+      background: rgba(5, 7, 11, 0.62);
+      backdrop-filter: blur(8px);
+    }
+
+    .play-speed-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      padding: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      background: rgba(5, 7, 11, 0.55);
+      backdrop-filter: blur(8px);
+    }
+
+    .play-speed {
+      min-width: 46px;
+      padding: 5px 7px;
+      color: var(--muted);
+    }
+
+    .play-speed.active {
+      color: #071019;
+      background: var(--accent);
+      border-color: rgba(255, 255, 255, 0.55);
+      box-shadow: 0 0 16px rgba(114, 215, 255, 0.38);
+    }
+
     .app[data-view="play"] #restartPlay {
+      display: block;
+      border-color: rgba(114, 215, 255, 0.48);
+    }
+
+    .app[data-view="play"] #playModePause {
       display: none;
     }
 
@@ -1105,7 +1178,17 @@
       }
 
       .play-hud {
-        grid-template-columns: repeat(2, minmax(110px, 1fr));
+        width: min(96%, 560px);
+        gap: 6px;
+      }
+
+      .hud-item {
+        min-height: 34px;
+        padding: 6px 9px;
+      }
+
+      .hud-value {
+        font-size: 17px;
       }
     }
   </style>
@@ -1161,7 +1244,12 @@
             <div id="feedbackLayer" class="feedback-layer"></div>
             <div class="play-actions">
               <button id="playModePause" type="button">Play / Pause</button>
-              <button id="restartPlay" type="button">Restart</button>
+              <div class="play-speed-controls" aria-label="Play speed">
+                <button class="play-speed" type="button" data-rate="0.75">0.75x</button>
+                <button class="play-speed active" type="button" data-rate="1">1x</button>
+                <button class="play-speed" type="button" data-rate="1.25">1.25x</button>
+              </div>
+              <button id="restartPlay" type="button">Retry</button>
               <button id="exitPlay" type="button">Exit Play</button>
             </div>
           </div>
@@ -1495,6 +1583,7 @@
       brushHotkeyNode: "first",
       inputNodeTypes: new Set([0, 1, 2, 3]),
       timingWindows: { ...DEFAULT_TIMING_WINDOWS },
+      playbackRate: 1,
       videoVolume: 80,
       beatVolume: 0.45,
       nodeVolume: 1.0,
@@ -1544,6 +1633,7 @@
       playModePause: document.getElementById("playModePause"),
       restartPlay: document.getElementById("restartPlay"),
       exitPlay: document.getElementById("exitPlay"),
+      playSpeeds: [...document.querySelectorAll(".play-speed")],
       localVideo: document.getElementById("localVideo"),
       localAudio: document.getElementById("localAudio"),
       timelineShell: document.querySelector(".timeline-shell"),
@@ -1618,6 +1708,7 @@
     let lastAudioScanTime = 0;
     let wasPlayingLastFrame = false;
     let lastAutoLengthCheckAt = 0;
+    let beatReactiveElements = [];
 
     const layout = {
       left: 56,
@@ -1721,6 +1812,31 @@
       });
     }
 
+    function setupBeatReactiveUI() {
+      const beatButtonIds = [
+        "testPlay",
+        "setOffsetCurrent",
+        "tapTempo",
+        "applyTapTempo",
+        "saveProject",
+        "applyBrush",
+        "publishChart",
+        "openShareUrl"
+      ];
+
+      for (const id of beatButtonIds) {
+        const node = document.getElementById(id);
+        if (node) node.classList.add("beat-reactive");
+      }
+
+      document.querySelectorAll(".play-hud .hud-item").forEach((node, index) => {
+        node.classList.add("beat-reactive");
+        node.style.setProperty("--beat-scale", index < 2 ? "0.045" : "0.032");
+      });
+
+      beatReactiveElements = [...document.querySelectorAll(".beat-reactive")];
+    }
+
     function resetChartForNewMedia() {
       pausePlayback(false);
       playState.active = false;
@@ -1751,6 +1867,7 @@
       state.brushHotkeyNode = "first";
       state.inputNodeTypes = new Set([0, 1, 2, 3]);
       state.timingWindows = { ...DEFAULT_TIMING_WINDOWS };
+      state.playbackRate = 1;
       state.videoVolume = 80;
       state.beatVolume = 0.45;
       state.nodeVolume = 1.0;
@@ -1788,6 +1905,7 @@
       }
 
       updateAudioSettings();
+      updatePlaybackRateButtons();
       updateTapTempoStatus();
       updateSelectionStatus();
       setToolMode("seek");
@@ -1973,6 +2091,7 @@
       media.onloadedmetadata = () => {
         state.localMediaDuration = Number.isFinite(media.duration) ? media.duration : 0;
         applyVideoVolume();
+        applyPlaybackRate();
         setTimelineTime(0, false);
         updateTimelineLengthFromMedia();
         el.videoStatus.textContent = `Loaded local ${isAudio ? "audio" : "video"}: ${file.name}`;
@@ -2063,6 +2182,7 @@
         state.playerReady = true;
         player.loadVideoById(videoId, state.offset);
         applyVideoVolume();
+        applyPlaybackRate();
         window.setTimeout(updateTimelineLengthFromMedia, 800);
         window.setTimeout(updateTimelineLengthFromMedia, 1800);
         el.videoStatus.textContent = "Video loaded. Playhead is synced to actual video time.";
@@ -2091,6 +2211,7 @@
             el.videoStatus.textContent = "Video loaded. Playhead is synced to actual video time.";
             player.seekTo(state.offset, true);
             applyVideoVolume();
+            applyPlaybackRate();
             state.localTime = 0;
             window.setTimeout(updateTimelineLengthFromMedia, 800);
             window.setTimeout(updateTimelineLengthFromMedia, 1800);
@@ -2626,6 +2747,48 @@
       el.localAudio.volume = clamp(state.videoVolume / 100, 0, 1);
     }
 
+    function updatePlaybackRateButtons() {
+      for (const button of el.playSpeeds) {
+        const rate = Number(button.dataset.rate) || 1;
+        button.classList.toggle("active", Math.abs(rate - state.playbackRate) < 0.001);
+      }
+    }
+
+    function applyPlaybackRate() {
+      const rate = clamp(Number(state.playbackRate) || 1, 0.75, 1.25);
+      state.playbackRate = rate;
+
+      if (
+        state.mediaSource === "youtube" &&
+        state.videoLoaded &&
+        state.playerReady &&
+        player &&
+        typeof player.setPlaybackRate === "function"
+      ) {
+        try {
+          player.setPlaybackRate(rate);
+        } catch {
+          // Some embedded videos can reject rate changes.
+        }
+      }
+
+      const local = activeLocalMediaElement();
+      if (local) {
+        try {
+          local.playbackRate = rate;
+        } catch {
+          // Keep playback usable if the browser rejects the rate.
+        }
+      }
+
+      updatePlaybackRateButtons();
+    }
+
+    function setPlaybackRate(rate) {
+      state.playbackRate = clamp(Number(rate) || 1, 0.75, 1.25);
+      applyPlaybackRate();
+    }
+
     function updateAudioLabels() {
       el.videoVolumeValue.textContent = `${Math.round(state.videoVolume)}%`;
       el.beatVolumeValue.textContent = `${Math.round(state.beatVolume * 100)}%`;
@@ -2707,6 +2870,7 @@
       state.localStartedAt = performance.now();
       state.isPlaying = true;
       resetAudioScan();
+      applyPlaybackRate();
 
       if (
         state.mediaSource === "youtube" &&
@@ -4421,7 +4585,8 @@
           cy: pos.y - 13,
           r: spec.radius,
           class: `note note-${type}`,
-          "data-note-id": note.id
+          "data-note-id": note.id,
+          "data-note-beat": note.beat
         });
 
         circle.addEventListener("pointerdown", (event) => {
@@ -4504,8 +4669,44 @@
       }
     }
 
+    function beatPulseValue(currentBeat) {
+      if (!state.isPlaying) return 0;
+
+      const phase = currentBeat - Math.floor(currentBeat);
+      const distance = Math.min(phase, 1 - phase);
+      const pulse = Math.max(0, 1 - distance / 0.28);
+      return pulse * pulse;
+    }
+
+    function updateBeatReactiveUI() {
+      const currentBeat = secondsToBeat(timelineTime());
+      const globalPulse = beatPulseValue(currentBeat);
+
+      for (const node of beatReactiveElements) {
+        node.style.setProperty("--beat-pulse", globalPulse.toFixed(3));
+      }
+
+      const shouldPulseNotes = state.isPlaying && state.notes.length > 0;
+      const noteNodes = el.timeline.querySelectorAll(".note[data-note-beat]");
+
+      for (const node of noteNodes) {
+        let pulse = 0;
+
+        if (shouldPulseNotes) {
+          const noteBeat = Number(node.dataset.noteBeat);
+          const distance = Math.abs(currentBeat - noteBeat);
+          pulse = Math.max(0, 1 - distance / 0.22);
+          pulse *= pulse;
+        }
+
+        node.style.setProperty("--note-pulse", pulse.toFixed(3));
+        node.classList.toggle("beat-hot", pulse > 0.2);
+      }
+    }
+
     function animationLoop() {
       updatePlayhead();
+      updateBeatReactiveUI();
       scanAndTriggerAudio();
       scanGameplayMisses();
 
@@ -4538,6 +4739,9 @@
       pausePlayback(true);
       setAppView("editor");
     });
+    for (const button of el.playSpeeds) {
+      button.addEventListener("click", () => setPlaybackRate(button.dataset.rate));
+    }
     el.sortNewest.addEventListener("click", () => {
       state.browseSort = "newest";
       loadBrowseCharts();
@@ -4803,6 +5007,7 @@
     });
 
     organizeInspectorPanels();
+    setupBeatReactiveUI();
     renderBrushOptions();
     updateAudioSettings();
     updateSelectionStatus();
