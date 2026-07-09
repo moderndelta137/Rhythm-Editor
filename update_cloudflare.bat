@@ -3,10 +3,10 @@ setlocal
 
 cd /d "%~dp0"
 
-set "PROJECT_NAME=rhythm-editor"
+set "PROJECT_NAME=rhythm-studio"
 set "BRANCH=main"
-set "SOURCE_HTML=rhythm_editor_canvas_prototype_v15.html"
-set "DEPLOY_DIR=%TEMP%\rhythm-editor-pages-deploy"
+set "SOURCE_HTML=rhythm_studio.html"
+set "DEPLOY_DIR=%TEMP%\rhythm-studio-pages-deploy"
 
 where node >nul 2>nul
 if %errorlevel% neq 0 (
@@ -64,7 +64,7 @@ xcopy /e /i /y "functions" "%DEPLOY_DIR%\functions" >nul
 echo.
 echo Deploying %PROJECT_NAME% to Cloudflare Pages...
 pushd "%DEPLOY_DIR%"
-call npx.cmd wrangler pages deploy "." --project-name %PROJECT_NAME% --branch %BRANCH% --commit-dirty=true --commit-message "Update rhythm editor"
+call npx.cmd wrangler pages deploy "." --project-name %PROJECT_NAME% --branch %BRANCH% --commit-dirty=true --commit-message "Update Rhythm Studio"
 set "DEPLOY_ERROR=%errorlevel%"
 popd
 if %DEPLOY_ERROR% neq 0 (

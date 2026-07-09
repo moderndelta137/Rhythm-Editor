@@ -4,7 +4,7 @@ setlocal
 cd /d "%~dp0"
 
 set "PORT=8000"
-set "HTML_FILE=rhythm_editor_canvas_prototype_v15.html"
+set "HTML_FILE=rhythm_studio.html"
 
 where python >nul 2>nul
 if %errorlevel% neq 0 (
@@ -14,9 +14,9 @@ if %errorlevel% neq 0 (
   exit /b 1
 )
 
-echo Starting Rhythm Editor at http://localhost:%PORT%/%HTML_FILE%
+echo Starting Rhythm Studio at http://localhost:%PORT%/%HTML_FILE%
 echo.
-echo Keep this window open while using the editor.
+echo Keep this window open while using Rhythm Studio.
 echo Press Ctrl+C here to stop the server.
 echo.
 echo Note: this launcher uses Python's static server.

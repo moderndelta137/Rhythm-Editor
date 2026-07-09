@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rhythm Note Timing Editor Prototype v15</title>
+  <title>Rhythm Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
@@ -29,7 +29,32 @@
       --warning: #ffcf72;
       --shadow: rgba(0, 0, 0, 0.35);
       --border: #303648;
+      --button-bg: #232837;
+      --button-hover: #2c3346;
+      --button-border: #3a4257;
       --inspector-width: minmax(340px, 28vw);
+    }
+
+    body[data-theme="theater"] {
+      --bg: #fff4c8;
+      --panel: #fff8df;
+      --panel-2: #ffeaa2;
+      --panel-3: #fff0bd;
+      --text: #40213e;
+      --muted: #7c5576;
+      --line: #e8b85e;
+      --strong-line: #f05a91;
+      --accent: #ff5f9f;
+      --weak: #20b89b;
+      --medium: #f9ce3f;
+      --strong: #ff8a32;
+      --very-strong: #bd54db;
+      --playhead: #f03d7f;
+      --border: #5a2f1d;
+      --button-bg: #ffe37a;
+      --button-hover: #ffd15c;
+      --button-border: #5a2f1d;
+      --shadow: rgba(148, 79, 42, 0.22);
     }
 
     * {
@@ -66,6 +91,13 @@
       background: #0d1017;
     }
 
+    body[data-theme="theater"] .workspace {
+      background:
+        linear-gradient(135deg, rgba(255, 95, 159, 0.13), transparent 34%),
+        linear-gradient(225deg, rgba(255, 206, 63, 0.16), transparent 42%),
+        #fff2bd;
+    }
+
     .topbar {
       grid-column: 1 / -1;
       display: grid;
@@ -77,6 +109,16 @@
       border-bottom: 1px solid var(--border);
       box-shadow: 0 3px 12px var(--shadow);
       min-width: 0;
+    }
+
+    body[data-theme="theater"] .topbar {
+      background: linear-gradient(90deg, #4b2819 0%, #6b3520 48%, #4a241c 100%);
+      border-bottom-color: #2f170f;
+      color: #fff4d0;
+    }
+
+    body[data-theme="theater"] .topbar .account-name {
+      color: #fff4d0;
     }
 
     .media-controls {
@@ -106,6 +148,48 @@
       justify-content: flex-end;
       gap: 7px;
       min-width: 0;
+    }
+
+    .theme-switch {
+      display: inline-flex;
+      gap: 5px;
+      padding: 4px;
+      border: 1px solid var(--button-border);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--panel-2) 78%, transparent);
+    }
+
+    .theme-chip {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .theme-chip::before {
+      content: "";
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: conic-gradient(#72d7ff, #ffdc6e, #ff5f8f, #72d7ff);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.18);
+    }
+
+    .theme-chip[data-theme-choice="theater"]::before {
+      background: conic-gradient(#ff5f9f, #ff8a32, #f9ce3f, #20b89b, #bd54db, #ff5f9f);
+    }
+
+    .theme-chip.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(114, 215, 255, 0.2);
+    }
+
+    body[data-theme="theater"] .theme-chip.active {
+      border-color: #5a2f1d;
+      box-shadow: 0 0 0 2px rgba(255, 95, 159, 0.25);
     }
 
     .account-name {
@@ -146,6 +230,10 @@
       background: linear-gradient(180deg, #10131b 0%, #0d1017 100%);
     }
 
+    body[data-theme="theater"] .video-panel {
+      background: linear-gradient(180deg, #fff8d6 0%, #ffe8a1 100%);
+    }
+
     .player-box {
       position: relative;
       width: 100%;
@@ -158,6 +246,12 @@
       display: grid;
       place-items: center;
       box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+    }
+
+    body[data-theme="theater"] .player-box {
+      background: #2e1a3a;
+      border-color: #f2a64a;
+      box-shadow: 0 10px 24px rgba(207, 112, 42, 0.24);
     }
 
     .placeholder {
@@ -293,6 +387,10 @@
       overflow: hidden;
     }
 
+    body[data-theme="theater"] .timeline-panel {
+      background: #fff2bd;
+    }
+
     .timeline-mini-toolbar {
       display: flex;
       align-items: center;
@@ -305,6 +403,11 @@
       border-radius: 10px;
       color: var(--muted);
       font-size: 12px;
+    }
+
+    body[data-theme="theater"] .timeline-mini-toolbar {
+      background: #fff8df;
+      border-color: #f2a64a;
     }
 
     .timeline-mini-toolbar strong {
@@ -320,6 +423,11 @@
       background: #10131b;
     }
 
+    body[data-theme="theater"] .timeline-shell {
+      background: #fff8df;
+      border-color: #f2a64a;
+    }
+
     #timeline {
       display: block;
       background: #151924;
@@ -331,12 +439,20 @@
       min-height: 100%;
     }
 
+    body[data-theme="theater"] #timeline {
+      background: #fff0bd;
+    }
+
     .inspector {
       min-width: 0;
       min-height: 0;
       display: grid;
       grid-template-rows: 1fr;
       background: #171b26;
+    }
+
+    body[data-theme="theater"] .inspector {
+      background: #ffe8a1;
     }
 
     .inspector-scroll {
@@ -351,6 +467,11 @@
       border: 1px solid #323849;
       border-radius: 12px;
       background: rgba(27, 31, 42, 0.96);
+    }
+
+    body[data-theme="theater"] .inspector-section {
+      background: rgba(255, 248, 223, 0.96);
+      border-color: #f2a64a;
     }
 
     .inspector-section h2 {
@@ -498,8 +619,8 @@
     button,
     textarea {
       border-radius: 9px;
-      border: 1px solid #3a4257;
-      background: var(--panel-2);
+      border: 1px solid var(--button-border);
+      background: var(--button-bg);
       color: var(--text);
       padding: 7px 9px;
       font: inherit;
@@ -539,8 +660,8 @@
     }
 
     button:hover {
-      background: #2c3346;
-      border-color: #56617c;
+      background: var(--button-hover);
+      border-color: var(--accent);
     }
 
     button:active {
@@ -550,6 +671,35 @@
     .primary {
       background: #254b63;
       border-color: #367395;
+    }
+
+    body[data-theme="theater"] input,
+    body[data-theme="theater"] select,
+    body[data-theme="theater"] textarea {
+      background: #fffbe8;
+      border-color: #5a2f1d;
+      color: #40213e;
+    }
+
+    body[data-theme="theater"] button {
+      color: #40213e;
+      box-shadow: 0 2px 0 rgba(173, 83, 25, 0.22);
+    }
+
+    body[data-theme="theater"] .primary {
+      background: #ff5f9f;
+      border-color: #5a2f1d;
+      color: #fffdf7;
+    }
+
+    body[data-theme="theater"] .status,
+    body[data-theme="theater"] .browse-panel,
+    body[data-theme="theater"] .account-panel,
+    body[data-theme="theater"] .chart-card,
+    body[data-theme="theater"] .auth-card {
+      background: #fff8df;
+      border-color: #f2a64a;
+      color: #40213e;
     }
 
     .beat-reactive {
@@ -736,6 +886,34 @@
         drop-shadow(0 0 14px rgba(114, 215, 255, 0.58));
     }
 
+    .play-drawer-note.hit {
+      stroke: #fffdf3;
+      stroke-width: 4;
+      filter:
+        drop-shadow(0 0 10px rgba(255, 230, 109, 0.9))
+        drop-shadow(0 0 16px rgba(255, 79, 163, 0.55));
+    }
+
+    .play-drawer-note.missed {
+      opacity: 1;
+    }
+
+    .note.selected {
+      stroke: #f8fbff;
+      stroke-width: 4;
+      filter:
+        drop-shadow(0 0 10px rgba(114, 215, 255, 0.9))
+        drop-shadow(0 0 18px rgba(255, 255, 255, 0.45));
+    }
+
+    .selection-box {
+      fill: rgba(114, 215, 255, 0.12);
+      stroke: rgba(114, 215, 255, 0.85);
+      stroke-width: 1.5;
+      stroke-dasharray: 6 4;
+      pointer-events: none;
+    }
+
     .note-time,
     .note-type-label {
       fill: #fff2b2;
@@ -778,6 +956,11 @@
       flex: 0 0 auto;
     }
 
+    body[data-theme="theater"] .nav-tabs {
+      background: rgba(255, 248, 223, 0.72);
+      border-color: #e85b86;
+    }
+
     .view-tab {
       min-width: 82px;
       padding: 7px 10px;
@@ -799,9 +982,21 @@
       border-color: #3f66b2;
     }
 
+    body[data-theme="theater"] .view-tab.editor-tab {
+      background: #ffcf46;
+      border-color: #5a2f1d;
+      color: #40213e;
+    }
+
     .view-tab.play-tab {
       background: #3d1f48;
       border-color: #8a4caf;
+    }
+
+    body[data-theme="theater"] .view-tab.play-tab {
+      background: #ff5f9f;
+      border-color: #5a2f1d;
+      color: #fffdf7;
     }
 
     .view-tab.browse-tab {
@@ -809,10 +1004,21 @@
       border-color: #2e8a72;
     }
 
+    body[data-theme="theater"] .view-tab.browse-tab {
+      background: #20b89b;
+      border-color: #5a2f1d;
+      color: #fffdf7;
+    }
+
     .view-tab.active {
       color: #ffffff;
       box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24) inset, 0 0 18px rgba(114, 215, 255, 0.24);
       filter: saturate(1.3);
+    }
+
+    body[data-theme="theater"] .view-tab.active {
+      box-shadow: 0 0 0 2px rgba(255, 253, 247, 0.7) inset, 0 0 0 2px rgba(64, 33, 62, 0.16);
+      filter: saturate(1.08);
     }
 
     .app[data-view="browse"],
@@ -929,6 +1135,134 @@
       font-size: 12px;
       background: rgba(5, 7, 11, 0.62);
       backdrop-filter: blur(8px);
+    }
+
+    .play-timeline-drawer {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 12px;
+      z-index: 13;
+      width: auto;
+      height: 104px;
+      display: grid;
+      grid-template-columns: 40px 46px minmax(0, 1fr) 40px;
+      gap: 8px;
+      align-items: center;
+      padding: 16px 10px 10px;
+      border: 1px solid rgba(114, 215, 255, 0.38);
+      border-radius: 8px;
+      background: rgba(8, 11, 18, 0.84);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(10px);
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .play-timeline-drawer.collapsed {
+      transform: translateY(calc(100% + 18px));
+    }
+
+    .drawer-knob {
+      position: fixed;
+      left: 50%;
+      bottom: 116px;
+      width: 64px;
+      height: 24px;
+      padding: 0;
+      transform: translateX(-50%);
+      border-radius: 8px 8px 0 0;
+      background: rgba(8, 11, 18, 0.92);
+      border-color: rgba(114, 215, 255, 0.48);
+      color: var(--accent);
+      line-height: 1;
+      z-index: 14;
+      pointer-events: auto;
+    }
+
+    .drawer-knob.collapsed {
+      bottom: 0;
+      transform: translateX(-50%);
+    }
+
+    .drawer-side,
+    .drawer-play {
+      height: 58px;
+      padding: 0;
+      line-height: 1;
+      background: rgba(35, 40, 55, 0.9);
+    }
+
+    .drawer-side {
+      font-size: 28px;
+    }
+
+    .drawer-play {
+      font-size: 18px;
+      color: var(--accent);
+      border-color: rgba(114, 215, 255, 0.52);
+    }
+
+    .play-timeline-wrap {
+      position: relative;
+      min-width: 0;
+      width: 100%;
+      height: 66px;
+    }
+
+    .play-timeline {
+      width: 100%;
+      height: 66px;
+      display: block;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      background: #10131b;
+      touch-action: none;
+      cursor: pointer;
+    }
+
+    .play-timeline-fx {
+      position: absolute;
+      inset: 0;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .drawer-star-ring {
+      position: absolute;
+      left: var(--fx-x, 50%);
+      top: var(--fx-y, 50%);
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
+    .drawer-star-ring .burst-star {
+      filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 16px rgba(255, 255, 255, 0.34));
+      animation-duration: 680ms;
+    }
+
+    body[data-theme="theater"] .play-timeline-drawer,
+    body[data-theme="theater"] .hud-item,
+    body[data-theme="theater"] .play-actions button,
+    body[data-theme="theater"] .play-speed-controls {
+      background: rgba(255, 248, 223, 0.88);
+      border-color: #5a2f1d;
+      color: #40213e;
+    }
+
+    body[data-theme="theater"] .drawer-side,
+    body[data-theme="theater"] .drawer-play,
+    body[data-theme="theater"] .drawer-knob {
+      background: #ffcf46;
+      border-color: #5a2f1d;
+      color: #40213e;
+    }
+
+    body[data-theme="theater"] .play-timeline {
+      background: #fff8df;
+      border-color: #5a2f1d;
     }
 
     .play-speed-controls {
@@ -1195,6 +1529,14 @@
       font-size: 15px;
     }
 
+    .auth-card .status {
+      max-width: none;
+      white-space: pre-line;
+      overflow: visible;
+      text-overflow: clip;
+      line-height: 1.45;
+    }
+
     .browse-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1361,7 +1703,6 @@
           <button id="loadVideo" class="primary">Load YouTube</button>
           <input id="localMediaInput" type="file" accept="video/*,audio/*" hidden />
           <button id="loadLocalMedia">Load Local Media</button>
-          <button id="testPlay" class="primary">Test Play</button>
           <span id="timeDisplay" class="time-display">00:00.000</span>
         </div>
         <div class="nav-tabs" aria-label="App views">
@@ -1370,6 +1711,10 @@
           <button id="browseView" class="view-tab browse-tab" type="button"><span class="view-icon">♫</span>Browse</button>
         </div>
         <div class="account-header">
+          <div class="theme-switch" aria-label="UI color scheme">
+            <button id="themeClassic" class="theme-chip" type="button" data-theme-choice="classic" title="Classic color scheme"></button>
+            <button id="themeTheater" class="theme-chip" type="button" data-theme-choice="theater" title="Step Theater color scheme"></button>
+          </div>
           <span id="accountLabel" class="account-name">Guest</span>
           <button id="loginAccount" class="primary" type="button">Login</button>
           <button id="createAccount" type="button">Register</button>
@@ -1382,7 +1727,7 @@
     <main class="workspace">
       <div id="localWarning" class="local-warning">
         You opened this as a local file. YouTube embeds can return <strong>Error 153</strong> from <code>file://</code> because there is no normal HTTP referrer.
-        Put this HTML in a folder and run <code>python -m http.server 8000</code>, then open <code>http://localhost:8000/rhythm_editor_canvas_prototype_v15.html</code>.
+        Put this HTML in a folder and run <code>python -m http.server 8000</code>, then open <code>http://localhost:8000/rhythm_studio.html</code>.
       </div>
 
       <section class="video-panel">
@@ -1408,6 +1753,16 @@
             </div>
             <div id="pressStartBanner" class="press-start-banner pixel-text">PRESS START</div>
             <div id="feedbackLayer" class="feedback-layer"></div>
+            <button id="playTimelineToggle" class="drawer-knob" type="button">⌄</button>
+            <div id="playTimelineDrawer" class="play-timeline-drawer">
+              <button id="playTimelineLeft" class="drawer-side" type="button">‹</button>
+              <button id="playTimelinePlayPause" class="drawer-play" type="button" title="Play / Pause">▶</button>
+              <div class="play-timeline-wrap">
+                <svg id="playTimeline" class="play-timeline" aria-label="Play mode timeline"></svg>
+                <div id="playTimelineFx" class="play-timeline-fx"></div>
+              </div>
+              <button id="playTimelineRight" class="drawer-side" type="button">›</button>
+            </div>
             <div class="play-actions">
               <button id="playModePause" type="button">Play / Pause</button>
               <div class="play-speed-controls" aria-label="Play speed">
@@ -1427,10 +1782,9 @@
           <div class="mode-pills">
             <span class="mode-label">Mode</span>
             <button id="seekMode" class="mode-btn active" type="button">Q Seek</button>
-            <button id="selectMode" class="mode-btn" type="button">W Select</button>
             <button id="nodeMode" class="mode-btn" type="button">E Edit Nodes</button>
           </div>
-          <span id="selectionStatus" class="selection-status">0 phrases selected</span>
+          <span id="selectionStatus" class="selection-status">0 nodes selected</span>
         </div>
         <div class="timeline-shell">
           <svg id="timeline" aria-label="Rhythm editor timeline"></svg>
@@ -1556,19 +1910,6 @@
         </section>
 
         <section class="inspector-section">
-          <h2>Phrase Selection</h2>
-          <div class="button-grid">
-            <button id="copySelected">Copy</button>
-            <button id="pasteSelected">Paste</button>
-            <button id="clearSelection">Clear</button>
-            <button id="deleteSelectedNotes" class="danger">Delete Notes</button>
-          </div>
-          <div class="control-row single" style="margin-top:8px;">
-            <label class="check-label"><input id="overwritePaste" type="checkbox" checked /> overwrite on paste</label>
-          </div>
-        </section>
-
-        <section class="inspector-section">
           <h2>Audio Options</h2>
           <div class="control-row single">
             <label class="check-label"><input id="beatSoundEnabled" type="checkbox" checked /> beat guide sound</label>
@@ -1634,7 +1975,7 @@
             </select>
           </div>
           <div class="button-grid">
-            <button id="applyBrush" class="primary full">Paint Selected Phrases</button>
+            <button id="applyBrush" class="primary full">Paint Brush at Playhead</button>
             <button id="saveBrush">Save</button>
             <button id="newBrush">New</button>
           </div>
@@ -1654,13 +1995,12 @@
           <h2>Controls</h2>
           <p class="hint">
             <strong>Q</strong>: Seek Mode 窶・click timeline to move playhead/video.<br />
-            <strong>W</strong>: Select Mode 窶・click or drag to select phrases.<br />
-            <strong>E</strong>: Edit Nodes Mode 窶・drag notes, right-click delete, double-click phrase to paint brush.<br />
+            <strong>E</strong>: Edit Nodes Mode 窶・click empty timeline to seek, drag empty space to select nodes, drag selected nodes to move together.<br />
             <strong>1/2/3/4</strong>: place/replace Weak/Medium/Strong/Very Strong node at playhead.<br />
             <strong>5</strong>: paint the whole brush pattern, anchored at the playhead by the first or last brush node. Brush offsets are preserved even if snap is coarse.<br />
             Each snapped beat can only contain one input node.<br />
             <strong>Space</strong>: play / pause.<br />
-            <strong>Ctrl/Cmd + C/V</strong>: copy / paste selected phrase nodes.<br />
+            <strong>Ctrl/Cmd + C/V</strong>: copy / paste selected nodes.<br />
             <strong>Export JSON</strong>: downloads the current media窶冱 timing data.
           </p>
         </section>
@@ -1752,8 +2092,7 @@
       tapTimes: [],
       toolMode: "seek",
       autoLength: true,
-      selectedPhrases: new Set(),
-      lastSelectedPhrase: null,
+      selectedNoteIds: new Set(),
       clipboard: null,
       beatSoundEnabled: true,
       beatSoundType: "click",
@@ -1762,6 +2101,9 @@
       inputNodeTypes: new Set([0, 1, 2, 3]),
       timingWindows: { ...DEFAULT_TIMING_WINDOWS },
       playbackRate: 1,
+      playTimelineStartBeat: 0,
+      playTimelineCollapsed: false,
+      uiTheme: localStorage.getItem("rhythm-editor-ui-theme-v2") || "theater",
       videoVolume: 80,
       beatVolume: 0.45,
       nodeVolume: 1.0,
@@ -1796,7 +2138,6 @@
       loadVideo: document.getElementById("loadVideo"),
       localMediaInput: document.getElementById("localMediaInput"),
       loadLocalMedia: document.getElementById("loadLocalMedia"),
-      testPlay: document.getElementById("testPlay"),
       playPause: document.getElementById("playPause"),
       playIcon: document.getElementById("playIcon"),
       timeDisplay: document.getElementById("timeDisplay"),
@@ -1807,6 +2148,13 @@
       playerOverlay: document.getElementById("playerOverlay"),
       feedbackLayer: document.getElementById("feedbackLayer"),
       pressStartBanner: document.getElementById("pressStartBanner"),
+      playTimelineDrawer: document.getElementById("playTimelineDrawer"),
+      playTimelineToggle: document.getElementById("playTimelineToggle"),
+      playTimelineLeft: document.getElementById("playTimelineLeft"),
+      playTimelineRight: document.getElementById("playTimelineRight"),
+      playTimelinePlayPause: document.getElementById("playTimelinePlayPause"),
+      playTimeline: document.getElementById("playTimeline"),
+      playTimelineFx: document.getElementById("playTimelineFx"),
       playScore: document.getElementById("playScore"),
       playCombo: document.getElementById("playCombo"),
       playPerfect: document.getElementById("playPerfect"),
@@ -1816,6 +2164,8 @@
       restartPlay: document.getElementById("restartPlay"),
       exitPlay: document.getElementById("exitPlay"),
       playSpeeds: [...document.querySelectorAll(".play-speed")],
+      themeClassic: document.getElementById("themeClassic"),
+      themeTheater: document.getElementById("themeTheater"),
       localVideo: document.getElementById("localVideo"),
       localAudio: document.getElementById("localAudio"),
       timelineShell: document.querySelector(".timeline-shell"),
@@ -1837,7 +2187,6 @@
       authSubmit: document.getElementById("authSubmit"),
       authCancel: document.getElementById("authCancel"),
       seekMode: document.getElementById("seekMode"),
-      selectMode: document.getElementById("selectMode"),
       nodeMode: document.getElementById("nodeMode"),
       bpm: document.getElementById("bpm"),
       tapTempo: document.getElementById("tapTempo"),
@@ -1894,10 +2243,15 @@
     let player = null;
     let youtubeApiPromise = null;
     let draggingNoteId = null;
+    let draggingNoteGroup = null;
     let selecting = false;
     let selectionStartedAt = null;
-    let selectionStartPhrase = null;
+    let selectionStartPoint = null;
+    let selectionEndPoint = null;
     let selectionDragMoved = false;
+    let draggingPlayTimeline = false;
+    let playTimelinePointer = null;
+    let lastDrawerSeekAt = 0;
     let audioContext = null;
     let lastAudioScanTime = 0;
     let wasPlayingLastFrame = false;
@@ -1925,7 +2279,6 @@
       "Timing Grid",
       "Audio Options",
       "Input Node Brush",
-      "Phrase Selection",
       "Play Mode Rules",
       "Publish Chart",
       "Controls"
@@ -2008,7 +2361,6 @@
 
     function setupBeatReactiveUI() {
       const beatButtonIds = [
-        "testPlay",
         "setOffsetCurrent",
         "tapTempo",
         "applyTapTempo",
@@ -2049,8 +2401,7 @@
       state.localTime = 0;
       state.localStartedAt = performance.now();
       state.autoLength = true;
-      state.selectedPhrases.clear();
-      state.lastSelectedPhrase = null;
+      state.selectedNoteIds.clear();
       state.clipboard = null;
       state.tapTimes = [];
       state.publishedChartId = "";
@@ -2081,7 +2432,7 @@
       el.chartTitle.value = "";
       el.chartDescription.value = "";
       el.chartVisibility.value = "public";
-      el.overwritePaste.checked = true;
+      if (el.overwritePaste) el.overwritePaste.checked = true;
       el.overwritePaint.checked = false;
       el.beatSoundEnabled.checked = true;
       el.beatSoundType.value = "click";
@@ -2546,6 +2897,21 @@
       el.playIcon.classList.toggle("paused", state.isPlaying);
       el.playPause.classList.toggle("playing", state.isPlaying);
       el.playPause.title = state.isPlaying ? "Pause (Space)" : "Play (Space)";
+      if (el.playTimelinePlayPause) {
+        el.playTimelinePlayPause.textContent = state.isPlaying ? "Ⅱ" : "▶";
+        el.playTimelinePlayPause.title = state.isPlaying ? "Pause" : "Play";
+      }
+    }
+
+    function applyTheme(theme) {
+      const nextTheme = theme === "theater" ? "theater" : "classic";
+      state.uiTheme = nextTheme;
+      document.body.dataset.theme = nextTheme;
+      localStorage.setItem("rhythm-editor-ui-theme-v2", nextTheme);
+      el.themeClassic?.classList.toggle("active", nextTheme === "classic");
+      el.themeTheater?.classList.toggle("active", nextTheme === "theater");
+      renderTimeline();
+      renderPlayTimeline();
     }
 
     function ensureAudio() {
@@ -3203,8 +3569,8 @@
         }))
         .filter(note => note.beat <= maxBeat);
 
-      state.selectedPhrases = new Set(
-        [...state.selectedPhrases].filter(phrase => phrase >= 0 && phrase < state.totalPhrases)
+      state.selectedNoteIds = new Set(
+        [...state.selectedNoteIds].filter(id => state.notes.some(note => note.id === id))
       );
 
       if (Number.isFinite(oldVideoTime)) {
@@ -3494,6 +3860,8 @@
 
       updatePlayHud();
       showJudgementFeedback(kind);
+      showPlayTimelineHit(note, kind);
+      renderPlayTimeline();
     }
 
     function noteTime(note) {
@@ -3535,6 +3903,7 @@
 
     function scanGameplayMisses() {
       if (!playState.active || state.appView !== "play" || !state.isPlaying) return;
+      if (performance.now() - lastDrawerSeekAt < 350) return;
 
       const now = timelineTime();
       for (const note of state.notes) {
@@ -3566,6 +3935,8 @@
       setTimelineTime(0, true);
       awaitingPlayStart = true;
       el.pressStartBanner.classList.add("visible");
+      state.playTimelineStartBeat = clampPlayTimelineStart(0);
+      renderPlayTimeline();
       el.playerOverlay.focus({ preventScroll: true });
       el.videoStatus.textContent = "Play Mode: press Space or click PRESS START.";
       el.videoStatus.classList.remove("warning");
@@ -3577,6 +3948,8 @@
       setTimelineTime(0, true);
       awaitingPlayStart = true;
       el.pressStartBanner.classList.add("visible");
+      state.playTimelineStartBeat = clampPlayTimelineStart(0);
+      renderPlayTimeline();
     }
 
     function buildPublishMetadata() {
@@ -3804,7 +4177,7 @@
       el.authSubmit.textContent = mode === "login" ? "Login" : "Register";
       el.accountStatus.textContent = mode === "login"
         ? "Enter username and password."
-        : "Choose 3-24 character username and 8+ character password.";
+        : "Choose 3-24 character username.\nUse a 6+ character password.";
       el.authModal.classList.add("open");
       el.authModal.setAttribute("aria-hidden", "false");
       el.accountUsername.focus();
@@ -4186,89 +4559,45 @@
       renderTimeline();
     }
 
-    function selectSinglePhrase(phrase) {
-      state.selectedPhrases = new Set([phrase]);
-      state.lastSelectedPhrase = phrase;
-      updateSelectionStatus();
-      renderTimeline();
-    }
-
-    function togglePhraseSelection(phrase) {
-      if (state.selectedPhrases.has(phrase)) {
-        state.selectedPhrases.delete(phrase);
-      } else {
-        state.selectedPhrases.add(phrase);
-      }
-      state.lastSelectedPhrase = phrase;
-      updateSelectionStatus();
-      renderTimeline();
-    }
-
-    function selectPhraseRange(a, b, additive = false) {
-      const start = Math.min(a, b);
-      const end = Math.max(a, b);
-      if (!additive) state.selectedPhrases.clear();
-      for (let phrase = start; phrase <= end; phrase++) {
-        if (phrase >= 0 && phrase < state.totalPhrases) {
-          state.selectedPhrases.add(phrase);
-        }
-      }
-      state.lastSelectedPhrase = b;
-      updateSelectionStatus();
-      renderTimeline();
-    }
-
     function clearSelection() {
-      state.selectedPhrases.clear();
+      state.selectedNoteIds.clear();
       updateSelectionStatus();
       renderTimeline();
     }
 
     function updateSelectionStatus() {
-      const count = state.selectedPhrases.size;
-      const noteCount = state.notes.filter(note => state.selectedPhrases.has(notePhrase(note))).length;
-      el.selectionStatus.textContent = `${count} phrase${count === 1 ? "" : "s"} selected / ${noteCount} node${noteCount === 1 ? "" : "s"}`;
+      const count = state.selectedNoteIds.size;
+      el.selectionStatus.textContent = `${count} node${count === 1 ? "" : "s"} selected`;
+    }
+
+    function selectedNotes() {
+      return state.notes
+        .filter(note => state.selectedNoteIds.has(note.id))
+        .sort((a, b) => a.beat - b.beat);
     }
 
     function copySelectedPhrases() {
-      const phrases = [...state.selectedPhrases].sort((a, b) => a - b);
-      if (!phrases.length) {
-        el.videoStatus.textContent = "Select at least one phrase before copying.";
+      const notes = selectedNotes();
+      if (!notes.length) {
+        el.videoStatus.textContent = "Select at least one node before copying.";
         el.videoStatus.classList.add("warning");
         return;
       }
 
-      const minPhrase = phrases[0];
-      const maxPhrase = phrases[phrases.length - 1];
-      const phraseSet = new Set(phrases);
-      const startBeat = phraseStartBeat(minPhrase);
+      const startBeat = notes[0].beat;
 
-      const copiedNotes = state.notes
-        .filter(note => phraseSet.has(notePhrase(note)))
+      const copiedNotes = notes
         .map(note => ({
           beatOffset: note.beat - startBeat,
           type: note.type
         }));
 
       state.clipboard = {
-        phraseCount: maxPhrase - minPhrase + 1,
-        selectedCount: phrases.length,
         notes: copiedNotes
       };
 
-      el.videoStatus.textContent = `Copied ${copiedNotes.length} node${copiedNotes.length === 1 ? "" : "s"} from ${phrases.length} phrase${phrases.length === 1 ? "" : "s"}.`;
+      el.videoStatus.textContent = `Copied ${copiedNotes.length} selected node${copiedNotes.length === 1 ? "" : "s"}.`;
       el.videoStatus.classList.remove("warning");
-    }
-
-    function removeNotesInPhrases(phrases) {
-      const phraseSet = new Set(phrases);
-      state.notes = state.notes.filter(note => !phraseSet.has(notePhrase(note)));
-    }
-
-    function removeNotesInRange(startPhrase, phraseCount) {
-      const startBeat = phraseStartBeat(startPhrase);
-      const endBeat = phraseStartBeat(startPhrase + phraseCount);
-      state.notes = state.notes.filter(note => note.beat < startBeat || note.beat >= endBeat);
     }
 
     function pasteToSelectedPhrases() {
@@ -4278,60 +4607,37 @@
         return;
       }
 
-      const targets = [...state.selectedPhrases].sort((a, b) => a - b);
-      if (!targets.length) {
-        el.videoStatus.textContent = "Select a target phrase before pasting.";
-        el.videoStatus.classList.add("warning");
-        return;
-      }
-
       const newNotes = [];
-      const overwrite = el.overwritePaste.checked;
+      const overwrite = el.overwritePaste ? el.overwritePaste.checked : true;
+      const baseBeat = snapBeat(secondsToBeat(timelineTime()));
 
-      if (state.clipboard.phraseCount === 1 && targets.length > 1) {
-        if (overwrite) removeNotesInPhrases(targets);
-
-        for (const phrase of targets) {
-          const baseBeat = phraseStartBeat(phrase);
-          for (const note of state.clipboard.notes) {
-            const relative = note.beatOffset % state.beatsPerPhrase;
-            const beat = baseBeat + relative;
-            if (beat <= totalBeats()) {
-              newNotes.push({ id: crypto.randomUUID(), beat, type: note.type });
-            }
-          }
-        }
-      } else {
-        const startPhrase = targets[0];
-        if (overwrite) removeNotesInRange(startPhrase, state.clipboard.phraseCount);
-
-        const baseBeat = phraseStartBeat(startPhrase);
-        for (const note of state.clipboard.notes) {
-          const beat = baseBeat + note.beatOffset;
-          if (beat >= 0 && beat <= totalBeats()) {
-            newNotes.push({ id: crypto.randomUUID(), beat, type: note.type });
-          }
+      for (const note of state.clipboard.notes) {
+        const beat = snapBeat(baseBeat + note.beatOffset);
+        if (beat >= 0 && beat <= totalBeats()) {
+          newNotes.push({ id: crypto.randomUUID(), beat, type: note.type });
         }
       }
 
       for (const note of newNotes) {
-        removeNodeAtBeat(note.beat);
+        if (overwrite) removeNodeAtBeat(note.beat);
         state.notes.push(note);
       }
+      state.selectedNoteIds = new Set(newNotes.map(note => note.id));
       renderTimeline();
       updateSelectionStatus();
 
-      el.videoStatus.textContent = `Pasted ${newNotes.length} node${newNotes.length === 1 ? "" : "s"}.`;
+      el.videoStatus.textContent = `Pasted ${newNotes.length} node${newNotes.length === 1 ? "" : "s"} at playline.`;
       el.videoStatus.classList.remove("warning");
     }
 
     function deleteNotesInSelection() {
       const before = state.notes.length;
-      removeNotesInPhrases([...state.selectedPhrases]);
+      state.notes = state.notes.filter(note => !state.selectedNoteIds.has(note.id));
       const deleted = before - state.notes.length;
+      state.selectedNoteIds.clear();
       renderTimeline();
       updateSelectionStatus();
-      el.videoStatus.textContent = `Deleted ${deleted} node${deleted === 1 ? "" : "s"} from selected phrases.`;
+      el.videoStatus.textContent = `Deleted ${deleted} selected node${deleted === 1 ? "" : "s"}.`;
       el.videoStatus.classList.remove("warning");
     }
 
@@ -4373,6 +4679,11 @@
 
       pattern.sort((a, b) => a.relativeBeat - b.relativeBeat || a.type - b.type);
       return pattern;
+    }
+
+    function removeNotesInPhrases(phrases) {
+      const phraseSet = new Set(phrases);
+      state.notes = state.notes.filter(note => !phraseSet.has(notePhrase(note)));
     }
 
     function applyBrushToPhrases(phrases) {
@@ -4463,16 +4774,13 @@
 
 
     function setToolMode(mode) {
-      state.toolMode = mode;
+      state.toolMode = mode === "seek" ? "seek" : "node";
       el.seekMode.classList.toggle("active", mode === "seek");
-      el.selectMode.classList.toggle("active", mode === "select");
       el.nodeMode.classList.toggle("active", mode === "node");
 
       const label = mode === "seek"
         ? "Seek Mode: click timeline to move playhead."
-        : mode === "select"
-          ? "Select Mode: click/drag phrases."
-          : "Edit Nodes Mode: drag/delete notes, double-click phrase to paint.";
+        : "Edit Nodes Mode: click empty timeline to seek, drag empty space to select nodes, drag selected nodes to move together.";
       el.videoStatus.textContent = label;
       el.videoStatus.classList.remove("warning");
     }
@@ -4785,7 +5093,7 @@
         updateAudioSettings();
       }
 
-      state.selectedPhrases.clear();
+      state.selectedNoteIds.clear();
       state.localTime = 0;
       state.localStartedAt = performance.now();
       updateFromInputs();
@@ -4841,6 +5149,39 @@
       return node;
     }
 
+    function getCssVar(name) {
+      return getComputedStyle(document.body).getPropertyValue(name).trim()
+        || getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function currentSelectionBox() {
+      if (!selectionStartPoint || !selectionEndPoint) return null;
+      const x = Math.min(selectionStartPoint.x, selectionEndPoint.x);
+      const y = Math.min(selectionStartPoint.y, selectionEndPoint.y);
+      return {
+        x,
+        y,
+        width: Math.abs(selectionEndPoint.x - selectionStartPoint.x),
+        height: Math.abs(selectionEndPoint.y - selectionStartPoint.y)
+      };
+    }
+
+    function selectNotesInBox(box, additive = false) {
+      if (!box) return;
+      const next = additive ? new Set(state.selectedNoteIds) : new Set();
+      for (const note of state.notes) {
+        const pos = beatToXY(note.beat);
+        if (!pos) continue;
+        const x = pos.x;
+        const y = pos.y - 13;
+        if (x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height) {
+          next.add(note.id);
+        }
+      }
+      state.selectedNoteIds = next;
+      updateSelectionStatus();
+    }
+
     function renderTimeline() {
       layout.phraseWidth = Math.max(160, state.beatsPerPhrase * 48);
 
@@ -4872,18 +5213,6 @@
         const col = phrase % state.phrasesPerRow;
         const x0 = layout.left + col * layout.phraseWidth;
         const y = layout.top + row * layout.rowHeight;
-
-        if (state.selectedPhrases.has(phrase)) {
-          const selected = createSvgElement("rect", {
-            x: x0 + 2,
-            y: y - layout.lineHalfHeight - 18,
-            width: layout.phraseWidth - 4,
-            height: layout.lineHalfHeight * 2 + 36,
-            rx: 10,
-            class: "phrase-selected"
-          });
-          el.timeline.appendChild(selected);
-        }
 
         const catcher = createSvgElement("rect", {
           x: x0,
@@ -4978,11 +5307,12 @@
         const type = clamp(Number(note.type) || 0, 0, 3);
         const spec = NODE_TYPES[type];
 
+        const selected = state.selectedNoteIds.has(note.id);
         const circle = createSvgElement("circle", {
           cx: pos.x,
           cy: pos.y - 13,
           r: spec.radius,
-          class: `note note-${type}`,
+          class: `note note-${type}${selected ? " selected" : ""}`,
           "data-note-id": note.id,
           "data-note-beat": note.beat
         });
@@ -4991,7 +5321,28 @@
           if (state.toolMode !== "node") return;
           event.preventDefault();
           event.stopPropagation();
+          if (event.ctrlKey || event.metaKey) {
+            if (state.selectedNoteIds.has(note.id)) {
+              state.selectedNoteIds.delete(note.id);
+            } else {
+              state.selectedNoteIds.add(note.id);
+            }
+            updateSelectionStatus();
+            renderTimeline();
+            return;
+          }
+
+          if (!state.selectedNoteIds.has(note.id)) {
+            state.selectedNoteIds = new Set([note.id]);
+            updateSelectionStatus();
+            renderTimeline();
+          }
           draggingNoteId = note.id;
+          const startBeat = eventToBeat(event, true);
+          draggingNoteGroup = {
+            startBeat: startBeat ?? note.beat,
+            notes: selectedNotes().map(item => ({ id: item.id, beat: item.beat }))
+          };
         });
 
         circle.addEventListener("contextmenu", (event) => {
@@ -5017,6 +5368,20 @@
         });
         timeText.textContent = formatTime(beatToSeconds(note.beat));
         el.timeline.appendChild(timeText);
+      }
+
+      if (selectionStartPoint && selectionDragMoved) {
+        const box = currentSelectionBox();
+        if (box) {
+          el.timeline.appendChild(createSvgElement("rect", {
+            x: box.x,
+            y: box.y,
+            width: box.width,
+            height: box.height,
+            rx: 4,
+            class: "selection-box"
+          }));
+        }
       }
 
       const playhead = createSvgElement("line", {
@@ -5066,6 +5431,166 @@
         state.localTime = totalSeconds();
         submitHighScore();
       }
+
+      updatePlayTimelinePlayhead();
+    }
+
+    function playTimelineBeatsVisible() {
+      const width = Math.max(720, el.playTimeline?.clientWidth || 0);
+      const measures = clamp(Math.floor(width / 150), 6, 14);
+      return Math.max(state.beatsPerPhrase * measures, state.beatsPerPhrase);
+    }
+
+    function clampPlayTimelineStart(startBeat) {
+      return clamp(startBeat, 0, Math.max(0, totalBeats() - playTimelineBeatsVisible()));
+    }
+
+    function ensurePlayTimelineFollowsBeat(beat) {
+      const visible = playTimelineBeatsVisible();
+      if (beat < state.playTimelineStartBeat || beat > state.playTimelineStartBeat + visible) {
+        state.playTimelineStartBeat = clampPlayTimelineStart(Math.floor(beat / state.beatsPerPhrase) * state.beatsPerPhrase);
+        renderPlayTimeline();
+      }
+    }
+
+    function playTimelineEventBeat(event) {
+      const rect = el.playTimeline.getBoundingClientRect();
+      const x = clamp(event.clientX - rect.left, 0, rect.width);
+      const visible = playTimelineBeatsVisible();
+      return clamp(state.playTimelineStartBeat + (x / Math.max(1, rect.width)) * visible, 0, totalBeats());
+    }
+
+    function playTimelineXForBeat(beat) {
+      const width = Number(el.playTimeline?.getAttribute("width")) || el.playTimeline?.clientWidth || 720;
+      const visible = playTimelineBeatsVisible();
+      const x = 10 + ((beat - state.playTimelineStartBeat) / Math.max(1, visible)) * (width - 20);
+      return clamp(x, 10, width - 10);
+    }
+
+    function showPlayTimelineHit(note = null, kind = "perfect") {
+      if (!el.playTimelineFx || state.appView !== "play") return;
+      const beat = note?.beat ?? secondsToBeat(timelineTime());
+      const visible = playTimelineBeatsVisible();
+      if (beat < state.playTimelineStartBeat || beat > state.playTimelineStartBeat + visible) return;
+
+      const ring = document.createElement("div");
+      ring.className = `drawer-star-ring ${kind}`;
+      ring.style.setProperty("--fx-x", `${playTimelineXForBeat(beat)}px`);
+      ring.style.setProperty("--fx-y", "35px");
+      const colors = ["#fffdf3", getCssVar("--accent"), getCssVar("--medium"), getCssVar("--very-strong")];
+      const count = kind === "perfect" ? 12 : 9;
+      const distance = kind === "perfect" ? 42 : 32;
+      for (let index = 0; index < count; index++) {
+        const star = document.createElement("span");
+        star.className = "burst-star";
+        star.style.setProperty("--angle", `${(360 / count) * index}deg`);
+        star.style.setProperty("--distance", `${distance}px`);
+        star.style.setProperty("--star-color", colors[index % colors.length]);
+        star.style.setProperty("--star-size", `${kind === "perfect" ? 22 : 16}px`);
+        ring.appendChild(star);
+      }
+      el.playTimelineFx.appendChild(ring);
+      window.setTimeout(() => ring.remove(), 720);
+    }
+
+    function updatePlayTimelineToggle() {
+      const collapsed = Boolean(state.playTimelineCollapsed);
+      el.playTimelineDrawer.classList.toggle("collapsed", collapsed);
+      el.playTimelineToggle.classList.toggle("collapsed", collapsed);
+      el.playTimelineToggle.textContent = collapsed ? "▴" : "▾";
+      el.playTimelineToggle.title = collapsed ? "Expand timeline" : "Collapse timeline";
+    }
+
+    function scrubPlayTimeline(event) {
+      const beat = playTimelineEventBeat(event);
+      setTimelineTime(beatToSeconds(beat), true);
+      lastDrawerSeekAt = performance.now();
+      ensurePlayTimelineFollowsBeat(beat);
+      renderPlayTimeline();
+    }
+
+    function renderPlayTimeline() {
+      if (!el.playTimeline) return;
+      const width = Math.max(320, Math.round(el.playTimeline.clientWidth || 720));
+      const height = 66;
+      const visible = playTimelineBeatsVisible();
+      const startBeat = clampPlayTimelineStart(state.playTimelineStartBeat);
+      const endBeat = Math.min(totalBeats(), startBeat + visible);
+      state.playTimelineStartBeat = startBeat;
+
+      el.playTimeline.setAttribute("width", width);
+      el.playTimeline.setAttribute("height", height);
+      el.playTimeline.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      el.playTimeline.innerHTML = "";
+
+      el.playTimeline.appendChild(createSvgElement("rect", { x: 0, y: 0, width, height, rx: 6, fill: getCssVar("--panel-3") }));
+      const y = 36;
+      el.playTimeline.appendChild(createSvgElement("line", { x1: 10, y1: y, x2: width - 10, y2: y, stroke: getCssVar("--line"), "stroke-width": 2 }));
+
+      const beatToX = beat => 10 + ((beat - startBeat) / Math.max(1, visible)) * (width - 20);
+      const firstMeasure = Math.floor(startBeat / state.beatsPerPhrase);
+      const lastMeasure = Math.ceil(endBeat / state.beatsPerPhrase);
+
+      for (let measure = firstMeasure; measure <= lastMeasure; measure++) {
+        const beat = measure * state.beatsPerPhrase;
+        if (beat < startBeat || beat > endBeat) continue;
+        const x = beatToX(beat);
+        el.playTimeline.appendChild(createSvgElement("line", { x1: x, y1: 8, x2: x, y2: 58, stroke: getCssVar("--strong-line"), "stroke-width": 1.5 }));
+        const label = createSvgElement("text", { x: x + 4, y: 14, class: "beat-label" });
+        label.textContent = String(measure + 1);
+        el.playTimeline.appendChild(label);
+
+        for (let beatIndex = 1; beatIndex < state.beatsPerPhrase; beatIndex++) {
+          const subBeat = beat + beatIndex;
+          if (subBeat < startBeat || subBeat > endBeat) continue;
+          const sx = beatToX(subBeat);
+          el.playTimeline.appendChild(createSvgElement("line", {
+            x1: sx,
+            y1: 18,
+            x2: sx,
+            y2: 55,
+            stroke: getCssVar("--line"),
+            "stroke-width": 1
+          }));
+        }
+      }
+
+      for (const note of state.notes) {
+        if (note.beat < startBeat || note.beat > endBeat) continue;
+        const type = clamp(Number(note.type) || 0, 0, 3);
+        const x = beatToX(note.beat);
+        el.playTimeline.appendChild(createSvgElement("circle", {
+          class: `note note-${type} play-drawer-note${playState.hitNotes.has(note.id) ? " hit" : ""}`,
+          "data-note-beat": note.beat,
+          "data-note-id": note.id,
+          cx: x,
+          cy: y,
+          r: 7 + type
+        }));
+      }
+
+      const beat = secondsToBeat(timelineTime());
+      const playX = beatToX(clamp(beat, startBeat, endBeat));
+      el.playTimeline.appendChild(createSvgElement("line", { id: "playTimelineHead", x1: playX, y1: 6, x2: playX, y2: 60, stroke: getCssVar("--playhead"), "stroke-width": 3, "stroke-linecap": "round" }));
+      updatePlayTimelineToggle();
+    }
+
+    function updatePlayTimelinePlayhead() {
+      if (!el.playTimeline || state.appView !== "play") return;
+      const beat = secondsToBeat(timelineTime());
+      const visible = playTimelineBeatsVisible();
+      if (beat < state.playTimelineStartBeat || beat > state.playTimelineStartBeat + visible) {
+        ensurePlayTimelineFollowsBeat(beat);
+      }
+      const head = document.getElementById("playTimelineHead");
+      if (!head) {
+        renderPlayTimeline();
+        return;
+      }
+      const width = Number(el.playTimeline.getAttribute("width")) || el.playTimeline.clientWidth || 720;
+      const x = 10 + ((beat - state.playTimelineStartBeat) / Math.max(1, visible)) * (width - 20);
+      head.setAttribute("x1", clamp(x, 10, width - 10));
+      head.setAttribute("x2", clamp(x, 10, width - 10));
     }
 
     function beatPulseValue(currentBeat, force = false) {
@@ -5090,8 +5615,15 @@
 
       el.pressStartBanner.style.setProperty("--beat-pulse", globalPulse.toFixed(3));
 
-      const shouldPulseNotes = state.isPlaying && state.notes.length > 0;
-      const noteNodes = el.timeline.querySelectorAll(".note[data-note-beat]");
+      const shouldPulseNotes = playState.active
+        && state.isPlaying
+        && state.notes.length > 0
+        && !playTimelinePointer
+        && performance.now() - lastDrawerSeekAt > 350;
+      const noteNodes = [
+        ...el.timeline.querySelectorAll(".note[data-note-beat]"),
+        ...el.playTimeline.querySelectorAll(".play-drawer-note[data-note-beat]")
+      ];
 
       for (const node of noteNodes) {
         let pulse = 0;
@@ -5136,8 +5668,8 @@
       setAppView("browse");
       loadBrowseCharts();
     });
-    el.testPlay.addEventListener("click", () => startPlayMode({ restart: true }));
     el.playModePause.addEventListener("click", playPause);
+    el.playTimelinePlayPause.addEventListener("click", playPause);
     el.pressStartBanner.addEventListener("click", playPause);
     el.restartPlay.addEventListener("click", restartPlayMode);
     el.exitPlay.addEventListener("click", () => {
@@ -5147,6 +5679,53 @@
     for (const button of el.playSpeeds) {
       button.addEventListener("click", () => setPlaybackRate(button.dataset.rate));
     }
+    el.themeClassic.addEventListener("click", () => applyTheme("classic"));
+    el.themeTheater.addEventListener("click", () => applyTheme("theater"));
+    el.playTimelineToggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      state.playTimelineCollapsed = !state.playTimelineCollapsed;
+      updatePlayTimelineToggle();
+    });
+    el.playTimelineLeft.addEventListener("click", () => {
+      state.playTimelineStartBeat = clampPlayTimelineStart(state.playTimelineStartBeat - state.beatsPerPhrase);
+      renderPlayTimeline();
+    });
+    el.playTimelineRight.addEventListener("click", () => {
+      state.playTimelineStartBeat = clampPlayTimelineStart(state.playTimelineStartBeat + state.beatsPerPhrase);
+      renderPlayTimeline();
+    });
+    el.playTimeline.addEventListener("pointerdown", (event) => {
+      draggingPlayTimeline = true;
+      playTimelinePointer = {
+        id: event.pointerId,
+        startX: event.clientX,
+        startBeat: state.playTimelineStartBeat,
+        moved: false
+      };
+      el.playTimeline.setPointerCapture?.(event.pointerId);
+    });
+    el.playTimeline.addEventListener("pointermove", (event) => {
+      if (!draggingPlayTimeline || !playTimelinePointer) return;
+      const rect = el.playTimeline.getBoundingClientRect();
+      const dx = event.clientX - playTimelinePointer.startX;
+      if (Math.abs(dx) <= 5 && !playTimelinePointer.moved) return;
+      playTimelinePointer.moved = true;
+      const visible = playTimelineBeatsVisible();
+      state.playTimelineStartBeat = clampPlayTimelineStart(playTimelinePointer.startBeat - (dx / Math.max(1, rect.width)) * visible);
+      renderPlayTimeline();
+    });
+    el.playTimeline.addEventListener("pointerup", (event) => {
+      const pointer = playTimelinePointer;
+      draggingPlayTimeline = false;
+      playTimelinePointer = null;
+      el.playTimeline.releasePointerCapture?.(event.pointerId);
+      if (pointer && !pointer.moved) scrubPlayTimeline(event);
+    });
+    el.playTimeline.addEventListener("pointerleave", () => {
+      draggingPlayTimeline = false;
+      playTimelinePointer = null;
+    });
     el.sortNewest.addEventListener("click", () => {
       state.browseSort = "newest";
       loadBrowseCharts();
@@ -5188,17 +5767,19 @@
     el.loadProject.addEventListener("click", loadProjectForCurrentUrl);
     el.exportProjectJson.addEventListener("click", exportCurrentProjectJson);
     el.seekMode.addEventListener("click", () => setToolMode("seek"));
-    el.selectMode.addEventListener("click", () => setToolMode("select"));
     el.nodeMode.addEventListener("click", () => setToolMode("node"));
-    el.copySelected.addEventListener("click", copySelectedPhrases);
-    el.pasteSelected.addEventListener("click", pasteToSelectedPhrases);
-    el.clearSelection.addEventListener("click", clearSelection);
-    el.deleteSelectedNotes.addEventListener("click", deleteNotesInSelection);
-    el.applyBrush.addEventListener("click", () => applyBrushToPhrases([...state.selectedPhrases]));
+    el.copySelected?.addEventListener("click", copySelectedPhrases);
+    el.pasteSelected?.addEventListener("click", pasteToSelectedPhrases);
+    el.clearSelection?.addEventListener("click", clearSelection);
+    el.deleteSelectedNotes?.addEventListener("click", deleteNotesInSelection);
+    el.applyBrush.addEventListener("click", () => applyBrushToPhrases([notePhrase({ beat: secondsToBeat(timelineTime()) })]));
     el.saveBrush.addEventListener("click", saveCurrentBrush);
     el.newBrush.addEventListener("click", newBrush);
 
-    window.addEventListener("resize", () => renderTimeline());
+    window.addEventListener("resize", () => {
+      renderTimeline();
+      renderPlayTimeline();
+    });
 
     el.brushPreset.addEventListener("change", () => {
       const brush = brushes[Number(el.brushPreset.value)];
@@ -5225,70 +5806,75 @@
     el.timeline.addEventListener("pointerdown", (event) => {
       if (event.target.classList.contains("note") && state.toolMode === "node") return;
 
-      const phrase = eventToPhrase(event);
-      if (phrase === null) return;
+      const beat = eventToBeat(event, false);
+      if (beat === null) return;
 
       event.preventDefault();
 
-      if (state.toolMode === "select") {
+      if (state.toolMode === "node") {
         selecting = true;
-        selectionStartPhrase = phrase;
         selectionStartedAt = { x: event.clientX, y: event.clientY };
+        selectionStartPoint = eventSvgPoint(event);
+        selectionEndPoint = selectionStartPoint;
         selectionDragMoved = false;
       }
     });
 
     el.timeline.addEventListener("pointermove", (event) => {
-      if (state.toolMode !== "select") return;
-      if (!selecting || selectionStartPhrase === null) return;
-
-      const phrase = eventToPhrase(event);
-      if (phrase === null) return;
+      if (state.toolMode !== "node") return;
+      if (!selecting || !selectionStartPoint) return;
 
       const dx = event.clientX - selectionStartedAt.x;
       const dy = event.clientY - selectionStartedAt.y;
       if (Math.hypot(dx, dy) > 5) {
         selectionDragMoved = true;
-        selectPhraseRange(selectionStartPhrase, phrase, event.shiftKey || event.ctrlKey || event.metaKey);
+        selectionEndPoint = eventSvgPoint(event);
+        selectNotesInBox(currentSelectionBox(), event.shiftKey || event.ctrlKey || event.metaKey);
+        renderTimeline();
       }
     });
 
     el.timeline.addEventListener("pointerup", (event) => {
-      const phrase = eventToPhrase(event);
       const beat = eventToBeat(event, false);
 
       if (state.toolMode === "seek") {
         if (beat !== null) setTimelineTime(beatToSeconds(beat), true);
         selecting = false;
-        selectionStartPhrase = null;
+        selectionStartPoint = null;
+        selectionEndPoint = null;
         selectionStartedAt = null;
         selectionDragMoved = false;
         return;
       }
 
-      if (state.toolMode === "select") {
-        if (!selecting || selectionStartPhrase === null) return;
+      if (state.toolMode === "node") {
+        if (!selecting) return;
 
-        if (!selectionDragMoved && phrase !== null) {
-          if (event.ctrlKey || event.metaKey) {
-            togglePhraseSelection(phrase);
-          } else if (event.shiftKey && state.lastSelectedPhrase !== null) {
-            selectPhraseRange(state.lastSelectedPhrase, phrase, true);
-          } else {
-            selectSinglePhrase(phrase);
+        if (!selectionDragMoved) {
+          if (beat !== null) {
+            if (!event.shiftKey && !event.ctrlKey && !event.metaKey) {
+              state.selectedNoteIds.clear();
+              updateSelectionStatus();
+              renderTimeline();
+            }
+            setTimelineTime(beatToSeconds(beat), true);
           }
+        } else {
+          selectNotesInBox(currentSelectionBox(), event.shiftKey || event.ctrlKey || event.metaKey);
         }
 
         selecting = false;
-        selectionStartPhrase = null;
+        selectionStartPoint = null;
+        selectionEndPoint = null;
         selectionStartedAt = null;
         selectionDragMoved = false;
+        renderTimeline();
         return;
       }
 
-      // Edit Nodes mode intentionally does not seek/select on empty clicks.
       selecting = false;
-      selectionStartPhrase = null;
+      selectionStartPoint = null;
+      selectionEndPoint = null;
       selectionStartedAt = null;
       selectionDragMoved = false;
     });
@@ -5296,9 +5882,11 @@
     el.timeline.addEventListener("pointerleave", () => {
       if (!selecting) return;
       selecting = false;
-      selectionStartPhrase = null;
+      selectionStartPoint = null;
+      selectionEndPoint = null;
       selectionStartedAt = null;
       selectionDragMoved = false;
+      renderTimeline();
     });
 
     el.timeline.addEventListener("dblclick", (event) => {
@@ -5323,16 +5911,34 @@
       if (!note) return;
 
       const nextBeat = snapBeat(beat);
-      state.notes = state.notes.filter(item =>
-        item.id === draggingNoteId || normalizedBeatKey(item.beat) !== normalizedBeatKey(nextBeat)
-      );
-      note.beat = nextBeat;
+      const delta = nextBeat - (draggingNoteGroup?.startBeat ?? note.beat);
+      const nextById = new Map();
+      for (const item of draggingNoteGroup?.notes || [{ id: note.id, beat: note.beat }]) {
+        nextById.set(item.id, clamp(snapBeat(item.beat + delta), 0, totalBeats()));
+      }
+      for (const item of state.notes) {
+        if (nextById.has(item.id)) item.beat = nextById.get(item.id);
+      }
       renderTimeline();
       updateSelectionStatus();
     });
 
     document.addEventListener("pointerup", () => {
+      if (draggingNoteGroup) {
+        const movingIds = new Set(draggingNoteGroup.notes.map(item => item.id));
+        const occupied = new Set(
+          state.notes
+            .filter(item => movingIds.has(item.id))
+            .map(item => normalizedBeatKey(item.beat))
+        );
+        state.notes = state.notes.filter(item =>
+          movingIds.has(item.id) || !occupied.has(normalizedBeatKey(item.beat))
+        );
+        renderTimeline();
+        updateSelectionStatus();
+      }
       draggingNoteId = null;
+      draggingNoteGroup = null;
     });
 
     window.addEventListener("keydown", (event) => {
@@ -5391,12 +5997,6 @@
           return;
         }
 
-        if (lowerKey === "w") {
-          event.preventDefault();
-          setToolMode("select");
-          return;
-        }
-
         if (lowerKey === "e") {
           event.preventDefault();
           setToolMode("node");
@@ -5446,6 +6046,7 @@
     updateAudioSettings();
     updateSelectionStatus();
     setToolMode("seek");
+    applyTheme(state.uiTheme);
     renderTimeline();
     updatePlayButton();
     animationLoop();

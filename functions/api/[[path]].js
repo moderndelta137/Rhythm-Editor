@@ -407,7 +407,7 @@ async function registerAccount(request, env) {
   const username = normalizeUsername(body?.username);
   const password = String(body?.password || "");
   if (!username) throw httpError(400, "Username must be 3-24 letters, numbers, _ or -");
-  if (password.length < 8) throw httpError(400, "Password must be at least 8 characters");
+  if (password.length < 6) throw httpError(400, "Password must be at least 6 characters");
 
   const existing = await db.prepare("SELECT id FROM users WHERE lower(username) = lower(?)").bind(username).first();
   if (existing) throw httpError(409, "Username already exists");
@@ -440,6 +440,7 @@ async function loginAccount(request, env) {
   const password = String(body?.password || "");
   if (!username || !password) throw httpError(400, "Username and password are required");
 
+  await ensureAdminAccount(env, username);
   const row = await db.prepare("SELECT id, username, avatar_url, password_hash, is_admin FROM users WHERE lower(username) = lower(?)").bind(username).first();
   if (!row?.password_hash || !(await verifyPassword(password, row.password_hash))) {
     throw httpError(401, "Invalid username or password");
@@ -706,13 +707,13 @@ async function ensureAppSchema(env) {
     }
   }
 
-  await ensureAdminAccount(env);
   schemaReady = true;
 }
 
-async function ensureAdminAccount(env) {
+async function ensureAdminAccount(env, requestedUsername = "") {
   const db = requireDb(env);
   const username = normalizeUsername(env.ADMIN_USERNAME || DEFAULT_ADMIN_USERNAME) || DEFAULT_ADMIN_USERNAME;
+  if (requestedUsername && requestedUsername.toLowerCase() !== username.toLowerCase()) return;
   const password = String(env.ADMIN_PASSWORD || env.RHYTHM_ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD);
   const existing = await db.prepare("SELECT id, password_hash, is_admin FROM users WHERE lower(username) = lower(?)").bind(username).first();
   const now = new Date().toISOString();
@@ -756,16 +757,36 @@ function normalizeUsername(value) {
 
 async function hashPassword(password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await passwordKey(password, salt);
-  return `${base64Url(salt)}:${base64Url(new Uint8Array(key))}`;
+  const key = await passwordDigest(password, salt);
+  return `v2:${base64Url(salt)}:${base64Url(key)}`;
 }
 
 async function verifyPassword(password, stored) {
-  const [saltText, hashText] = String(stored || "").split(":");
+  const parts = String(stored || "").split(":");
+  if (parts[0] === "v2") {
+    const salt = fromBase64Url(parts[1] || "");
+    const expected = fromBase64Url(parts[2] || "");
+    const actual = await passwordDigest(password, salt);
+    return timingSafeEqual(actual, expected);
+  }
+
+  const [saltText, hashText] = parts;
   if (!saltText || !hashText) return false;
   const salt = fromBase64Url(saltText);
   const actual = new Uint8Array(await passwordKey(password, salt));
   const expected = fromBase64Url(hashText);
+  return timingSafeEqual(actual, expected);
+}
+
+async function passwordDigest(password, salt) {
+  const passwordBytes = new TextEncoder().encode(password);
+  const data = new Uint8Array(salt.length + passwordBytes.length);
+  data.set(salt, 0);
+  data.set(passwordBytes, salt.length);
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+}
+
+function timingSafeEqual(actual, expected) {
   if (actual.length !== expected.length) return false;
   let diff = 0;
   for (let index = 0; index < actual.length; index++) diff |= actual[index] ^ expected[index];
