@@ -354,6 +354,7 @@ async function parseChartRequest(request) {
   if (!chartPayload || typeof chartPayload !== "object" || !Array.isArray(chartPayload.notes)) {
     throw httpError(400, "chartPayload.notes is required");
   }
+  chartPayload.nodeTypeSettings = normalizeNodeTypeSettings(chartPayload.nodeTypeSettings || body.nodeTypeSettings);
 
   return {
     title,
@@ -396,9 +397,34 @@ function formatChart(row, includePayload = false) {
 
   if (includePayload) {
     chart.chartPayload = JSON.parse(row.chart_payload);
+    chart.nodeTypeSettings = normalizeNodeTypeSettings(chart.chartPayload.nodeTypeSettings);
   }
 
   return chart;
+}
+
+function normalizeNodeTypeSettings(settings) {
+  const defaults = [
+    { soundType: "global", offsetMs: 0, inputMode: "space", inputKey: "", label: "W" },
+    { soundType: "global", offsetMs: 0, inputMode: "space", inputKey: "", label: "M" },
+    { soundType: "global", offsetMs: 0, inputMode: "space", inputKey: "", label: "S" },
+    { soundType: "global", offsetMs: 0, inputMode: "space", inputKey: "", label: "V" }
+  ];
+  const allowedInputs = new Set(["left", "right", "space", "both", "key"]);
+  const allowedBuiltInSounds = new Set(["global", "punchy", "arcade", "taiko", "clap", "metal"]);
+  return defaults.map((fallback, index) => {
+    const profile = Array.isArray(settings) ? settings[index] : null;
+    const soundType = typeof profile?.soundType === "string" ? profile.soundType : fallback.soundType;
+    const isSeSound = soundType.startsWith("se:") && soundType.endsWith(".mp3");
+    const offsetMs = Number(profile?.offsetMs);
+    return {
+      soundType: allowedBuiltInSounds.has(soundType) || isSeSound ? soundType : fallback.soundType,
+      offsetMs: Number.isFinite(offsetMs) ? Math.max(-500, Math.min(500, offsetMs)) : fallback.offsetMs,
+      inputMode: allowedInputs.has(profile?.inputMode) ? profile.inputMode : fallback.inputMode,
+      inputKey: String(profile?.inputKey || fallback.inputKey).trim().slice(0, 24),
+      label: String(profile?.label || fallback.label).trim().slice(0, 6) || fallback.label
+    };
+  });
 }
 
 async function registerAccount(request, env) {
