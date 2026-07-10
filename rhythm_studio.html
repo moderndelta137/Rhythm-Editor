@@ -1687,7 +1687,7 @@
       display: none;
       flex: 1 1 auto;
       min-height: 0;
-      padding: 14px;
+      padding: 20px 24px 28px;
       overflow: auto;
       background: var(--workspace-bg);
     }
@@ -1701,7 +1701,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 18px;
     }
 
     .account-panel {
@@ -1770,26 +1770,31 @@
 
     .browse-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 30px 20px;
     }
 
     .chart-card {
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--panel);
-      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      color: var(--text);
     }
 
     .chart-thumb {
+      position: relative;
       width: 100%;
       aspect-ratio: 16 / 9;
-      border-radius: 6px;
+      border-radius: 12px;
       overflow: hidden;
       background: #080a10;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
       margin-bottom: 10px;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
     }
 
     .chart-thumb img {
@@ -1797,33 +1802,139 @@
       height: 100%;
       display: block;
       object-fit: cover;
+      transition: transform 0.16s ease, filter 0.16s ease;
+    }
+
+    .chart-card:hover .chart-thumb img {
+      transform: scale(1.018);
+      filter: saturate(1.06);
+    }
+
+    .chart-score-badge {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      padding: 3px 6px;
+      border-radius: 5px;
+      background: rgba(0, 0, 0, 0.76);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .chart-info-row {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .chart-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.82), transparent 24%),
+        linear-gradient(135deg, var(--accent), var(--browse-tab-bg));
+      color: var(--primary-text);
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--panel) 54%, transparent);
+    }
+
+    .chart-main {
+      min-width: 0;
     }
 
     .chart-card h3 {
-      margin: 0 0 6px;
-      font-size: 16px;
+      margin: 0 0 5px;
+      font-size: 15px;
+      line-height: 1.35;
+      font-weight: 850;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      cursor: pointer;
     }
 
     .chart-card p {
-      margin: 0 0 10px;
+      margin: 0 0 7px;
       color: var(--muted);
       font-size: 12px;
       line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .chart-meta {
       display: flex;
-      gap: 8px;
+      gap: 4px 8px;
       flex-wrap: wrap;
       color: var(--muted);
-      font-size: 11px;
-      margin-bottom: 10px;
+      font-size: 12px;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+
+    .chart-menu-dot {
+      width: 24px;
+      min-width: 24px;
+      padding: 2px 0;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      box-shadow: none;
+      font-size: 20px;
+      line-height: 1;
+      cursor: default;
+    }
+
+    .chart-menu-dot:hover {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text);
+    }
+
+    .chart-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .chart-actions button {
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 12px;
     }
 
     .like-btn.liked {
       background: #4a2d58;
       border-color: #c777ff;
       color: #ffffff;
+    }
+
+    @media (max-width: 1180px) {
+      .browse-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .browse-panel {
+        padding: 14px;
+      }
+
+      .browse-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .publish-fields {
@@ -1918,6 +2029,193 @@
 
       .hud-value {
         font-size: 17px;
+      }
+    }
+
+    @media (max-width: 760px), (max-height: 520px) {
+      body:has(.app[data-view="play"]) {
+        overflow: hidden;
+      }
+
+      .app[data-view="play"] {
+        height: 100dvh;
+        min-height: 100dvh;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
+      }
+
+      .app[data-view="play"] .topbar {
+        gap: 6px;
+        padding: 6px;
+      }
+
+      .app[data-view="play"] .media-controls,
+      .app[data-view="play"] .account-header {
+        display: none;
+      }
+
+      .app[data-view="play"] .nav-tabs {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .app[data-view="play"] .view-tab {
+        min-height: 34px;
+        padding: 6px 8px;
+        font-size: 11px;
+      }
+
+      .app[data-view="play"] .video-panel {
+        min-height: 0;
+        padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+      }
+
+      .app[data-view="play"] .player-box {
+        height: 100%;
+        min-height: 0;
+        border-radius: 8px;
+      }
+
+      .app[data-view="play"] .play-hud {
+        top: calc(6px + env(safe-area-inset-top));
+        width: calc(100% - 12px);
+        gap: 4px;
+      }
+
+      .app[data-view="play"] .hud-item {
+        min-height: 28px;
+        padding: 4px 6px;
+        gap: 4px;
+        border-radius: 7px;
+      }
+
+      .app[data-view="play"] .hud-label {
+        font-size: 8px;
+      }
+
+      .app[data-view="play"] .hud-value {
+        font-size: 14px;
+      }
+
+      .app[data-view="play"] .play-actions {
+        right: calc(8px + env(safe-area-inset-right));
+        bottom: calc(8px + env(safe-area-inset-bottom));
+        gap: 5px;
+      }
+
+      .app[data-view="play"] .play-actions button {
+        min-height: 28px;
+        padding: 5px 7px;
+        font-size: 10px;
+      }
+
+      .app[data-view="play"] .play-speed-controls {
+        gap: 3px;
+        padding: 3px;
+        border-radius: 8px;
+      }
+
+      .app[data-view="play"] .play-speed {
+        min-width: 36px;
+        padding: 4px 5px;
+        font-size: 10px;
+      }
+
+      .app[data-view="play"] .play-timeline-drawer {
+        left: calc(6px + env(safe-area-inset-left));
+        right: calc(6px + env(safe-area-inset-right));
+        bottom: calc(6px + env(safe-area-inset-bottom));
+        height: 82px;
+        grid-template-columns: 32px 38px minmax(0, 1fr) 32px;
+        gap: 5px;
+        padding: 12px 6px 7px;
+      }
+
+      .app[data-view="play"] .drawer-knob {
+        bottom: calc(94px + env(safe-area-inset-bottom));
+        width: 54px;
+        height: 22px;
+      }
+
+      .app[data-view="play"] .drawer-knob.collapsed {
+        bottom: env(safe-area-inset-bottom);
+      }
+
+      .app[data-view="play"] .drawer-side,
+      .app[data-view="play"] .drawer-play {
+        height: 48px;
+      }
+
+      .app[data-view="play"] .play-timeline-wrap,
+      .app[data-view="play"] .play-timeline {
+        height: 54px;
+      }
+
+      .app[data-view="play"] .press-start-banner {
+        font-size: clamp(24px, 8vw, 52px);
+        max-width: calc(100% - 16px);
+        white-space: normal;
+        text-align: center;
+        line-height: 1.15;
+      }
+
+      .app[data-view="play"] .judgement-pop.perfect {
+        font-size: clamp(46px, 15vw, 96px);
+      }
+
+      .app[data-view="play"] .judgement-pop.good,
+      .app[data-view="play"] .judgement-pop.miss {
+        font-size: clamp(40px, 13vw, 82px);
+      }
+    }
+
+    @media (max-width: 760px) and (orientation: portrait) {
+      .app[data-view="play"] .play-hud {
+        justify-content: center;
+      }
+
+      .app[data-view="play"] .hud-item {
+        flex: 1 1 30%;
+        justify-content: center;
+        max-width: 108px;
+      }
+    }
+
+    @media (max-height: 520px) and (orientation: landscape) {
+      .app[data-view="play"] .topbar {
+        padding: 4px 6px;
+      }
+
+      .app[data-view="play"] .play-hud {
+        top: 5px;
+        justify-content: flex-start;
+        width: calc(100% - 170px);
+        transform: none;
+        left: 8px;
+      }
+
+      .app[data-view="play"] .hud-item {
+        min-height: 24px;
+        padding: 3px 5px;
+      }
+
+      .app[data-view="play"] .play-timeline-drawer {
+        height: 68px;
+        grid-template-columns: 28px 34px minmax(0, 1fr) 28px;
+      }
+
+      .app[data-view="play"] .drawer-knob {
+        bottom: calc(80px + env(safe-area-inset-bottom));
+      }
+
+      .app[data-view="play"] .drawer-side,
+      .app[data-view="play"] .drawer-play {
+        height: 40px;
+      }
+
+      .app[data-view="play"] .play-timeline-wrap,
+      .app[data-view="play"] .play-timeline {
+        height: 44px;
       }
     }
   </style>
@@ -4353,12 +4651,21 @@
       return String(event.key || event.code || "").trim().toLowerCase();
     }
 
+    function isMobilePlayTap(event) {
+      if (!event?.type?.startsWith("pointer")) return false;
+      if (event.pointerType === "touch") return true;
+      if (event.pointerType && event.pointerType !== "touch") return false;
+      return window.matchMedia?.("(pointer: coarse), (hover: none)")?.matches ?? event.pointerType === "touch";
+    }
+
     function noteMatchesInput(note, event) {
       const profile = nodeTypeProfile(note.type);
       const mode = NODE_INPUT_MODES.has(profile.inputMode) ? profile.inputMode : "space";
       const inputKind = event?.type?.startsWith("pointer") ? "pointer" : "key";
       const side = inputKind === "pointer" ? eventInputSide(event) : "";
       const key = inputKind === "key" ? normalizeInputKey(event) : "";
+
+      if (inputKind === "pointer" && isMobilePlayTap(event)) return true;
 
       if (mode === "space") return inputKind === "key" && key === "space";
       if (mode === "left") return (inputKind === "pointer" && side === "left") || key === "arrowleft";
@@ -4818,33 +5125,54 @@
         const card = document.createElement("article");
         card.className = "chart-card";
         const videoId = chart.media?.youtubeVideoId || chart.youtubeVideoId || chart.videoId || "";
+        const creatorName = chart.creatorName || "Guest";
+        const playChart = () => openRemoteChart(chart.id);
 
         if (videoId) {
           const thumb = document.createElement("div");
           thumb.className = "chart-thumb";
+          thumb.title = "Play this chart";
+          thumb.addEventListener("click", playChart);
           const image = document.createElement("img");
           image.src = `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`;
-          image.alt = "";
+          image.alt = chart.title || "Chart thumbnail";
           image.loading = "lazy";
+          const scoreBadge = document.createElement("span");
+          scoreBadge.className = "chart-score-badge";
+          scoreBadge.textContent = `High ${chart.highScore || 0}`;
           thumb.appendChild(image);
+          thumb.appendChild(scoreBadge);
           card.appendChild(thumb);
         }
 
+        const infoRow = document.createElement("div");
+        infoRow.className = "chart-info-row";
+
+        const avatar = document.createElement("div");
+        avatar.className = "chart-avatar";
+        avatar.textContent = creatorName.trim().slice(0, 1).toUpperCase() || "G";
+        avatar.title = creatorName;
+
+        const main = document.createElement("div");
+        main.className = "chart-main";
+
         const title = document.createElement("h3");
         title.textContent = chart.title || "Untitled Chart";
+        title.title = "Play this chart";
+        title.addEventListener("click", playChart);
 
         const description = document.createElement("p");
         description.textContent = chart.description || "No description.";
 
         const meta = document.createElement("div");
         meta.className = "chart-meta";
-        meta.textContent = `By ${chart.creatorName || "Guest"} | Plays ${chart.playCount || 0} | Likes ${chart.likeCount || 0} | High ${chart.highScore || 0}`;
+        meta.textContent = `${creatorName} • ${chart.playCount || 0} plays • ${chart.likeCount || 0} likes`;
 
         const play = document.createElement("button");
         play.className = "primary";
         play.type = "button";
         play.textContent = "▶ Play";
-        play.addEventListener("click", () => openRemoteChart(chart.id));
+        play.addEventListener("click", playChart);
 
         const like = document.createElement("button");
         like.className = `like-btn${chart.likedByMe ? " liked" : ""}`;
@@ -4866,7 +5194,16 @@
           actions.appendChild(remove);
         }
 
-        card.append(title, description, meta, actions);
+        const menuDot = document.createElement("button");
+        menuDot.className = "chart-menu-dot";
+        menuDot.type = "button";
+        menuDot.textContent = "⋮";
+        menuDot.tabIndex = -1;
+        menuDot.setAttribute("aria-hidden", "true");
+
+        main.append(title, meta, description, actions);
+        infoRow.append(avatar, main, menuDot);
+        card.appendChild(infoRow);
         el.chartList.appendChild(card);
       }
     }
@@ -6287,6 +6624,7 @@
     el.playerOverlay.addEventListener("pointerdown", (event) => {
       if (state.appView !== "play" || !playState.active) return;
       if (event.target === el.pressStartBanner || event.target.closest?.("#pressStartBanner")) return;
+      if (event.target.closest?.(".play-actions, .play-timeline-drawer, .drawer-knob")) return;
       event.preventDefault();
       const side = eventInputSide(event);
       if (side) {
