@@ -1294,10 +1294,15 @@
       z-index: 8;
       pointer-events: none;
       display: none;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .app[data-view="play"] .player-overlay {
       display: block;
+      pointer-events: auto;
     }
 
     .play-hud {
@@ -2032,6 +2037,240 @@
       }
     }
 
+    @media (max-width: 600px) {
+      html {
+        min-width: 0;
+        background: var(--bg);
+      }
+
+      body {
+        min-width: 0;
+        overflow-x: hidden;
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+
+      .app[data-view="editor"],
+      .app[data-view="browse"] {
+        display: block;
+        width: 100%;
+        min-height: 100dvh;
+        height: auto;
+        overflow: visible;
+      }
+
+      .topbar {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 8px max(8px, env(safe-area-inset-left));
+      }
+
+      .nav-tabs {
+        order: -1;
+        width: 100%;
+        justify-self: auto;
+      }
+
+      .view-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 44px;
+        padding: 8px 5px;
+        font-size: 12px;
+      }
+
+      .media-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+        width: 100%;
+      }
+
+      .media-controls input[type="url"] {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .media-controls button {
+        width: 100%;
+        white-space: normal;
+        line-height: 1.15;
+      }
+
+      .time-display {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+        padding: 5px 8px;
+        text-align: center;
+      }
+
+      .account-header {
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding: 1px 0 3px;
+        scrollbar-width: thin;
+      }
+
+      .account-header > * {
+        flex: 0 0 auto;
+      }
+
+      .account-name {
+        max-width: 96px;
+      }
+
+      .app > #videoStatus {
+        width: 100%;
+        padding: 7px 9px;
+        white-space: normal;
+        line-height: 1.35;
+      }
+
+      .workspace {
+        display: block;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+        border-right: 0;
+      }
+
+      .local-warning {
+        margin: 8px 8px 0;
+      }
+
+      .video-panel {
+        width: 100%;
+        min-height: 0;
+        height: auto;
+        padding: 8px 8px 4px;
+      }
+
+      .player-box {
+        width: 100%;
+        min-height: 0;
+        height: auto;
+        aspect-ratio: 16 / 9;
+      }
+
+      .placeholder {
+        max-width: 88%;
+        padding: 16px;
+        transform: none;
+        font-size: 12px;
+      }
+
+      .center-play {
+        width: 72px;
+        height: 72px;
+        padding: 10px 8px 7px;
+      }
+
+      .timeline-panel {
+        width: 100%;
+        min-height: 420px;
+        height: min(54dvh, 500px);
+        padding: 4px 8px 8px;
+      }
+
+      .timeline-mini-toolbar {
+        align-items: flex-start;
+        min-height: 0;
+        padding: 7px;
+      }
+
+      .mode-pills {
+        gap: 5px;
+      }
+
+      .mode-label {
+        width: 100%;
+      }
+
+      .mode-btn {
+        min-height: 38px;
+        padding: 7px 9px;
+      }
+
+      .selection-status {
+        padding-top: 5px;
+        text-align: right;
+      }
+
+      .timeline-shell {
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .inspector {
+        display: block;
+        width: 100%;
+        min-height: 0;
+        height: auto;
+      }
+
+      .inspector-scroll {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        padding: 8px;
+      }
+
+      .inspector-section {
+        width: 100%;
+        margin: 0 0 8px;
+      }
+
+      input,
+      select,
+      button {
+        min-height: 44px;
+      }
+
+      input[type="checkbox"] {
+        min-height: 0;
+        width: 20px;
+        height: 20px;
+      }
+
+      input[type="range"] {
+        min-height: 32px;
+      }
+
+      textarea {
+        min-height: 110px;
+      }
+
+      .control-row {
+        grid-template-columns: minmax(104px, 0.8fr) minmax(0, 1fr);
+      }
+
+      .button-grid,
+      .button-grid.three {
+        gap: 7px;
+      }
+
+      .editor-hotkeys {
+        display: none;
+      }
+
+      .browse-panel {
+        width: 100%;
+        min-height: calc(100dvh - 190px);
+        padding: 10px;
+      }
+
+      .browse-toolbar {
+        align-items: flex-start;
+      }
+    }
+
     @media (max-width: 760px), (max-height: 520px) {
       body:has(.app[data-view="play"]) {
         overflow: hidden;
@@ -2042,6 +2281,15 @@
         min-height: 100dvh;
         grid-template-rows: auto minmax(0, 1fr);
         overflow: hidden;
+      }
+
+      .app[data-view="play"] > #videoStatus {
+        display: none;
+      }
+
+      .app[data-view="play"] .workspace {
+        min-height: 0;
+        height: 100%;
       }
 
       .app[data-view="play"] .topbar {
