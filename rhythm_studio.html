@@ -68,6 +68,10 @@
       --play-overlay-bg: rgba(255, 248, 223, 0.88);
       --play-control-bg: var(--warning);
       --inspector-width: minmax(340px, 28vw);
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
     }
 
     body[data-theme="warm-studio"] {
@@ -262,6 +266,18 @@
       color: var(--text);
     }
 
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 16% -8%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 34%),
+        radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--very-strong) 11%, transparent), transparent 28%),
+        var(--bg);
+    }
+
     .app {
       height: 100vh;
       display: grid;
@@ -284,16 +300,56 @@
     .topbar {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      grid-template-columns: auto minmax(280px, 1fr) auto minmax(0, auto);
       gap: 12px;
       align-items: center;
-      padding: 8px 10px;
+      padding: 10px 14px;
       background: var(--topbar-bg);
       border-bottom: 1px solid var(--border);
       box-shadow: 0 3px 12px var(--shadow);
       min-width: 0;
       color: var(--topbar-text);
+      backdrop-filter: blur(22px) saturate(1.2);
+      position: relative;
+      z-index: 20;
     }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: max-content;
+      user-select: none;
+    }
+
+    .brand-mark {
+      --shine-x: -28px;
+      position: relative;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--accent) 58%, var(--button-border));
+      border-radius: 12px;
+      color: var(--accent);
+      background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 18%, transparent), rgba(255,255,255,.025));
+      box-shadow: inset 0 1px rgba(255,255,255,.14), 0 8px 26px color-mix(in srgb, var(--accent) 16%, transparent);
+      font-size: 20px;
+      overflow: hidden;
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      width: 54px;
+      height: 10px;
+      background: rgba(255,255,255,.22);
+      transform: translateX(var(--shine-x)) rotate(-35deg);
+    }
+
+    .brand-copy { display: grid; gap: 2px; }
+    .brand-title { font-size: 13px; font-weight: 900; letter-spacing: .08em; }
+    .brand-kicker { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
 
     .media-controls {
       display: flex;
@@ -414,11 +470,23 @@
       min-height: 220px;
       background: var(--player-bg);
       border: 1px solid var(--player-border);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
       display: grid;
       place-items: center;
-      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255,255,255,.06);
+      isolation: isolate;
+    }
+
+    .player-box::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(120deg, rgba(255,255,255,.08), transparent 25%, transparent 72%, color-mix(in srgb, var(--accent) 9%, transparent));
+      mix-blend-mode: screen;
     }
 
     .placeholder {
@@ -563,7 +631,7 @@
       min-height: 32px;
       background: var(--toolbar-bg);
       border: 1px solid var(--toolbar-border);
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       color: var(--muted);
       font-size: 12px;
     }
@@ -577,7 +645,7 @@
       flex: 1 1 auto;
       overflow: auto;
       border: 1px solid var(--toolbar-border);
-      border-radius: 12px;
+      border-radius: var(--radius-md);
       background: var(--timeline-shell-bg);
     }
 
@@ -603,15 +671,23 @@
     .inspector-scroll {
       min-height: 0;
       overflow: auto;
-      padding: 10px;
+      padding: 12px;
+      scrollbar-color: color-mix(in srgb, var(--accent) 38%, var(--button-border)) transparent;
     }
 
     .inspector-section {
       margin-bottom: 10px;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid var(--section-border);
-      border-radius: 12px;
-      background: var(--section-bg);
+      border-radius: var(--radius-md);
+      background: linear-gradient(145deg, color-mix(in srgb, var(--section-bg) 95%, white 2%), var(--section-bg));
+      box-shadow: inset 0 1px rgba(255,255,255,.055), 0 8px 24px rgba(0,0,0,.08);
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .inspector-section:hover {
+      border-color: color-mix(in srgb, var(--accent) 42%, var(--section-border));
+      box-shadow: inset 0 1px rgba(255,255,255,.07), 0 12px 30px rgba(0,0,0,.12);
     }
 
     .inspector-section h2 {
@@ -687,6 +763,7 @@
       color: var(--muted);
       font-size: 11px;
       line-height: 1;
+      will-change: transform;
     }
 
     .inspector-section-body {
@@ -782,6 +859,15 @@
       min-width: 0;
     }
 
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    button:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: var(--focus-ring);
+    }
+
     textarea {
       min-height: 82px;
       resize: vertical;
@@ -814,6 +900,7 @@
       transition: transform 0.06s ease, background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
       user-select: none;
       white-space: nowrap;
+      isolation: isolate;
     }
 
     button:hover {
@@ -865,7 +952,10 @@
       background: var(--primary-bg);
       border-color: var(--primary-border);
       color: var(--primary-text);
+      box-shadow: inset 0 1px rgba(255,255,255,.13), 0 7px 18px color-mix(in srgb, var(--primary-bg) 26%, transparent);
     }
+
+    .primary:hover { filter: brightness(1.08) saturate(1.08); }
 
     input,
     select,
@@ -978,7 +1068,8 @@
       max-width: none;
       padding: 6px 10px;
       border-bottom: 1px solid #242b3b;
-      background: #141925;
+      background: color-mix(in srgb, var(--topbar-bg) 84%, transparent);
+      backdrop-filter: blur(16px);
     }
 
     .selection-status {
@@ -1760,6 +1851,23 @@
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
     }
 
+    .gsap-ready .app,
+    .gsap-ready .auth-card,
+    .gsap-ready .inspector-section,
+    .gsap-ready .player-box,
+    .gsap-ready .nav-tabs {
+      will-change: transform, opacity;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
     .auth-card h2 {
       margin: 0;
       font-size: 15px;
@@ -1974,6 +2082,8 @@
         flex-wrap: wrap;
       }
 
+      .brand { justify-self: center; }
+
       .nav-tabs {
         justify-self: center;
       }
@@ -2066,6 +2176,9 @@
         width: 100%;
         padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 8px max(8px, env(safe-area-inset-left));
       }
+
+
+      .brand { width: 100%; justify-content: center; }
 
       .nav-tabs {
         order: -1;
@@ -2471,6 +2584,13 @@
 <body>
   <div class="app" data-view="editor">
     <div class="topbar">
+        <div class="brand" aria-label="Rhythm Studio">
+          <div class="brand-mark" aria-hidden="true">♫</div>
+          <div class="brand-copy">
+            <span class="brand-title">RHYTHM STUDIO</span>
+            <span class="brand-kicker">Chart workstation</span>
+          </div>
+        </div>
         <div class="media-controls">
           <input
             id="videoUrl"
@@ -2856,6 +2976,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <script>
     const NODE_TYPES = [
       { name: "Weak", short: "W", radius: 8, volume: 0.52, pitch: 260, duration: 0.085 },
@@ -3258,13 +3379,7 @@
           toggle = document.createElement("button");
           toggle.type = "button";
           toggle.className = "section-toggle";
-          toggle.addEventListener("click", () => {
-            const isCollapsed = section.classList.toggle("collapsed");
-            section.dataset.collapsed = String(isCollapsed);
-            toggle.setAttribute("aria-expanded", String(!isCollapsed));
-            const caret = toggle.querySelector(".section-caret");
-            if (caret) caret.textContent = isCollapsed ? "+" : "-";
-          });
+          toggle.addEventListener("click", () => animateInspectorSection(section, toggle));
           heading.replaceChildren(toggle);
         }
 
@@ -3285,6 +3400,95 @@
         caret.textContent = isCollapsed ? "+" : "-";
 
         toggle.append(titleNode, caret);
+      });
+    }
+
+    function animateInspectorSection(section, toggle) {
+      const body = section.querySelector(":scope > .inspector-section-body");
+      const caret = toggle.querySelector(".section-caret");
+      const isCollapsing = !section.classList.contains("collapsed");
+      section.dataset.collapsed = String(isCollapsing);
+      toggle.setAttribute("aria-expanded", String(!isCollapsing));
+      if (caret) caret.textContent = isCollapsing ? "+" : "-";
+
+      if (!window.gsap || !body || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        section.classList.toggle("collapsed", isCollapsing);
+        return;
+      }
+
+      gsap.killTweensOf([body, caret]);
+      if (isCollapsing) {
+        gsap.to(body, {
+          height: 0,
+          autoAlpha: 0,
+          marginTop: 0,
+          duration: 0.28,
+          ease: "power2.inOut",
+          onComplete: () => {
+            section.classList.add("collapsed");
+            gsap.set(body, { clearProps: "height,opacity,visibility,marginTop" });
+          }
+        });
+      } else {
+        section.classList.remove("collapsed");
+        gsap.fromTo(body,
+          { height: 0, autoAlpha: 0, marginTop: 0 },
+          { height: "auto", autoAlpha: 1, marginTop: 8, duration: 0.34, ease: "power3.out", clearProps: "height,opacity,visibility,marginTop" }
+        );
+      }
+      if (caret) gsap.to(caret, { rotation: isCollapsing ? 90 : 0, duration: 0.28, ease: "power2.out" });
+    }
+
+    function animateViewTransition(view) {
+      if (!window.gsap || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const targets = view === "browse"
+        ? [document.querySelector(".browse-toolbar"), document.querySelector(".browse-panel > .status"), ...document.querySelectorAll(".chart-card")]
+        : view === "play"
+          ? [document.querySelector(".player-box"), document.querySelector(".play-hud"), document.querySelector(".play-actions")]
+          : [document.querySelector(".video-panel"), document.querySelector(".timeline-mini-toolbar"), document.querySelector(".timeline-shell"), document.querySelector(".inspector")];
+      const visibleTargets = targets.filter(Boolean);
+      gsap.killTweensOf(visibleTargets);
+      gsap.fromTo(visibleTargets,
+        { autoAlpha: 0, y: 14, scale: 0.992 },
+        { autoAlpha: 1, y: 0, scale: 1, duration: 0.46, stagger: 0.055, ease: "power3.out", clearProps: "opacity,visibility,transform" }
+      );
+    }
+
+    function initMotionDesign() {
+      if (!window.gsap) return;
+      document.documentElement.classList.add("gsap-ready");
+
+      const motion = gsap.matchMedia();
+      motion.add("(prefers-reduced-motion: no-preference)", () => {
+        const intro = gsap.timeline({ defaults: { ease: "power3.out" } });
+        intro
+          .from(".brand", { autoAlpha: 0, x: -18, duration: 0.5 })
+          .from(".nav-tabs", { autoAlpha: 0, y: -12, scale: 0.96, duration: 0.48 }, "<0.08")
+          .from(".media-controls > *", { autoAlpha: 0, y: -8, duration: 0.34, stagger: 0.035 }, "<")
+          .from(".account-header > *", { autoAlpha: 0, x: 8, duration: 0.32, stagger: 0.03 }, "<")
+          .from(".player-box", { autoAlpha: 0, y: 20, scale: 0.985, duration: 0.58 }, "-=0.2")
+          .from(".timeline-panel", { autoAlpha: 0, y: 18, duration: 0.48 }, "-=0.38")
+          .from(".inspector-section", { autoAlpha: 0, x: 18, duration: 0.38, stagger: 0.045 }, "-=0.4");
+
+        gsap.to(".brand-mark", { "--shine-x": "68px", duration: 1.15, ease: "power2.inOut" });
+
+        const player = document.querySelector(".player-box");
+        if (player && window.matchMedia("(pointer: fine)").matches) {
+          const xTo = gsap.quickTo(player, "rotationY", { duration: 0.42, ease: "power3.out" });
+          const yTo = gsap.quickTo(player, "rotationX", { duration: 0.42, ease: "power3.out" });
+          const move = (event) => {
+            const rect = player.getBoundingClientRect();
+            xTo(((event.clientX - rect.left) / rect.width - 0.5) * 1.6);
+            yTo(((event.clientY - rect.top) / rect.height - 0.5) * -1.2);
+          };
+          const leave = () => { xTo(0); yTo(0); };
+          player.addEventListener("pointermove", move);
+          player.addEventListener("pointerleave", leave);
+          return () => {
+            player.removeEventListener("pointermove", move);
+            player.removeEventListener("pointerleave", leave);
+          };
+        }
       });
     }
 
@@ -3849,6 +4053,11 @@
       localStorage.setItem("rhythm-editor-ui-theme-v2", nextTheme);
       for (const button of el.themeButtons) {
         button.classList.toggle("active", button.dataset.themeChoice === nextTheme);
+      }
+      if (window.gsap && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const activeTheme = el.themeButtons.find(button => button.dataset.themeChoice === nextTheme);
+        if (activeTheme) gsap.fromTo(activeTheme, { scale: 0.82, rotation: -10 }, { scale: 1, rotation: 0, duration: 0.48, ease: "back.out(2)", clearProps: "transform" });
+        gsap.fromTo(".workspace, .inspector", { autoAlpha: 0.84 }, { autoAlpha: 1, duration: 0.4, ease: "power2.out", clearProps: "opacity,visibility" });
       }
       renderTimeline();
       renderPlayTimeline();
@@ -4789,6 +4998,7 @@
       if (view === "editor") {
         renderTimeline();
       }
+      requestAnimationFrame(() => animateViewTransition(view));
     }
 
     function resetPlaySession() {
@@ -5283,10 +5493,28 @@
         : "Choose 3-24 character username.\nUse a 6+ character password.";
       el.authModal.classList.add("open");
       el.authModal.setAttribute("aria-hidden", "false");
+      if (window.gsap && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        gsap.fromTo(el.authModal, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, ease: "power2.out" });
+        gsap.fromTo(el.authModal.querySelector(".auth-card"), { autoAlpha: 0, y: 22, scale: 0.94 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.42, ease: "back.out(1.6)" });
+      }
       el.accountUsername.focus();
     }
 
     function closeAuthModal() {
+      if (window.gsap && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        gsap.to(el.authModal.querySelector(".auth-card"), { autoAlpha: 0, y: 12, scale: 0.97, duration: 0.18, ease: "power2.in" });
+        gsap.to(el.authModal, {
+          autoAlpha: 0,
+          duration: 0.24,
+          ease: "power2.in",
+          onComplete: () => {
+            el.authModal.classList.remove("open");
+            el.authModal.setAttribute("aria-hidden", "true");
+            gsap.set([el.authModal, el.authModal.querySelector(".auth-card")], { clearProps: "opacity,visibility,transform" });
+          }
+        });
+        return;
+      }
       el.authModal.classList.remove("open");
       el.authModal.setAttribute("aria-hidden", "true");
     }
@@ -7253,6 +7481,7 @@
 
     organizeInspectorPanels();
     setupBeatReactiveUI();
+    initMotionDesign();
     renderBrushOptions();
     updateAudioSettings();
     renderNodeTypeEditor();
